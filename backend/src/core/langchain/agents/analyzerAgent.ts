@@ -1,4 +1,4 @@
-import { BaseAgent } from './baseAgent.js';
+import { SimpleAgent } from './simpleAgent.js';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import type { DataCollectorResult, AnalyzerResult } from '../../types/index.js';
 
@@ -10,7 +10,7 @@ import type { DataCollectorResult, AnalyzerResult } from '../../types/index.js';
  * - Определение сильных/слабых сторон компании
  * - Оценка качества tech stack
  */
-export class AnalyzerAgent extends BaseAgent {
+export class AnalyzerAgent extends SimpleAgent {
   private promptTemplate: ChatPromptTemplate;
 
   constructor() {

@@ -4,11 +4,12 @@
  * 8 специализированных агентов на базе LangChain.js
  */
 
-// Base Agent
-export { BaseAgent } from './baseAgent.js';
+// Base Agents
+export { ThinkingAgent, BaseAgent } from './baseAgent.js';
+export { SimpleAgent } from './simpleAgent.js';
 
-// 🎯 Main Orchestrator - координирует всех агентов
-export { orchestratorAgent, OrchestratorAgent } from './orchestratorAgent.js';
+// 🎯 Main Orchestrator - ДУМАЮЩИЙ агент-координатор
+export { orchestratorAgent, OrchestratorAgent } from './orchestrator/index.js';
 
 // 7 Specialized Agents
 export { dataCollectorAgent, DataCollectorAgent } from './dataCollectorAgent.js';

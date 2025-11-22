@@ -10,7 +10,7 @@ import type { DataCollectorResult, EventTrackerResult } from '../../types/index.
  * - Запуски продуктов
  * - Упоминания в новостях
  */
-export class EventTrackerAgent extends BaseAgent {
+export class EventTrackerAgent extends SimpleAgent {
   private promptTemplate: ChatPromptTemplate;
 
   constructor() {

@@ -1,23 +1,42 @@
-import { BaseAgent } from './baseAgent.js';
+import { logger } from '../../utils/logger.js';
 import type { DataCollectorResult, HHData, GitHubData, HabrData } from '../../types/index.js';
+import { fetchHHVacancies } from '../../../mocks/hhMock.js';
+import { fetchGitHubRepos } from '../../../mocks/githubMock.js';
+import { fetchHabrArticles } from '../../../mocks/habrMock.js';
 
 /**
  * Data Collector Agent
- * Собирает данные о компании из разных источников:
+ * 
+ * Простой агент для сбора данных о компании из разных источников.
+ * Не использует AI - просто параллельно собирает данные из всех источников.
+ * 
+ * Источники:
  * - HH.ru (вакансии)
  * - GitHub (репозитории, активность)
  * - Habr (статьи, упоминания)
- * - LinkedIn (профиль компании)
+ * 
+ * Примечание: Это "служебный" агент без AI.
+ * Реальные "думающие" агенты: MarketResearcher, Analyzer, Orchestrator
  */
-export class DataCollectorAgent extends BaseAgent {
-  constructor() {
-    super('DataCollector');
+export class DataCollectorAgent {
+  private agentName = 'DataCollector';
+
+  private log(message: string, data?: any) {
+    logger.info(`[${this.agentName}] ${message}`, data);
   }
 
-  async collect(companyName: string): Promise<DataCollectorResult> {
-    return this.execute(async () => {
-      this.log(`Collecting data for: ${companyName}`);
+  private logError(message: string, error: any) {
+    logger.error(`[${this.agentName}] ${message}`, error);
+  }
 
+  /**
+   * Собирает данные о компании из всех источников параллельно
+   */
+  async collect(companyName: string): Promise<DataCollectorResult> {
+    const startTime = Date.now();
+    this.log(`Collecting data for: ${companyName}`);
+
+    try {
       // Параллельный сбор данных из всех источников
       const [hhData, githubData, habrData] = await Promise.all([
         this.collectFromHH(companyName),
@@ -25,44 +44,34 @@ export class DataCollectorAgent extends BaseAgent {
         this.collectFromHabr(companyName),
       ]);
 
+      const executionTime = Date.now() - startTime;
+      this.log(`Completed in ${executionTime}ms`, {
+        hasHH: !!hhData,
+        hasGitHub: !!githubData,
+        hasHabr: !!habrData,
+      });
+
       return {
         hhData,
         githubData,
         habrData,
         collectedAt: new Date().toISOString(),
       };
-    });
+    } catch (error) {
+      this.logError('Collection failed', error);
+      throw error;
+    }
   }
 
   private async collectFromHH(companyName: string): Promise<HHData | undefined> {
     try {
       this.log(`Collecting from HH.ru for: ${companyName}`);
       
-      // TODO: Реальный парсинг через Parser Service (PHP)
-      // const response = await fetch(`${PARSER_SERVICE_URL}/parse/hh?company=${companyName}`);
+      // Используем mock API (в будущем заменится на реальный парсер)
+      const hhData = await fetchHHVacancies(companyName);
       
-      // Mock data for MVP
-      return {
-        vacancies: [
-          {
-            title: 'Senior Backend Developer',
-            salary: '200,000 - 300,000 руб',
-            skills: ['Node.js', 'TypeScript', 'PostgreSQL'],
-            experience: '3-6 лет',
-            publishedAt: new Date().toISOString(),
-          },
-          {
-            title: 'Frontend Developer',
-            salary: '150,000 - 250,000 руб',
-            skills: ['React', 'TypeScript', 'Next.js'],
-            experience: '1-3 года',
-            publishedAt: new Date().toISOString(),
-          },
-        ],
-        totalVacancies: 5,
-        avgSalary: 175000,
-        requiredSkills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL'],
-      };
+      this.log(`Collected ${hhData.vacancies.length} vacancies from HH.ru`);
+      return hhData;
     } catch (error) {
       this.logError('Failed to collect from HH.ru', error);
       return undefined;
@@ -73,32 +82,11 @@ export class DataCollectorAgent extends BaseAgent {
     try {
       this.log(`Collecting from GitHub for: ${companyName}`);
       
-      // TODO: Реальный парсинг через Parser Service
-      // const response = await fetch(`${PARSER_SERVICE_URL}/parse/github?company=${companyName}`);
+      // Используем mock API (в будущем заменится на реальный парсер)
+      const githubData = await fetchGitHubRepos(companyName);
       
-      // Mock data for MVP
-      return {
-        repositories: [
-          {
-            name: `${companyName.toLowerCase()}-api`,
-            stars: 156,
-            forks: 23,
-            language: 'TypeScript',
-            lastCommit: new Date().toISOString(),
-          },
-          {
-            name: `${companyName.toLowerCase()}-web`,
-            stars: 89,
-            forks: 12,
-            language: 'JavaScript',
-            lastCommit: new Date().toISOString(),
-          },
-        ],
-        totalRepos: 8,
-        totalCommits: 247,
-        languages: ['TypeScript', 'JavaScript', 'Python', 'Go'],
-        activity: 247, // commits last 30 days
-      };
+      this.log(`Collected ${githubData.repositories.length} repositories from GitHub`);
+      return githubData;
     } catch (error) {
       this.logError('Failed to collect from GitHub', error);
       return undefined;
@@ -109,22 +97,11 @@ export class DataCollectorAgent extends BaseAgent {
     try {
       this.log(`Collecting from Habr for: ${companyName}`);
       
-      // TODO: Реальный парсинг через Parser Service
-      // const response = await fetch(`${PARSER_SERVICE_URL}/parse/habr?company=${companyName}`);
+      // Используем mock API (в будущем заменится на реальный парсер)
+      const habrData = await fetchHabrArticles(companyName);
       
-      // Mock data for MVP
-      return {
-        articles: [
-          {
-            title: `Как мы в ${companyName} внедрили микросервисы`,
-            url: 'https://habr.com/ru/company/example/blog/123456/',
-            publishedAt: new Date().toISOString(),
-            tags: ['microservices', 'backend', 'nodejs'],
-          },
-        ],
-        totalArticles: 10,
-        topics: ['backend', 'frontend', 'devops', 'ai'],
-      };
+      this.log(`Collected ${habrData.articles.length} articles from Habr`);
+      return habrData;
     } catch (error) {
       this.logError('Failed to collect from Habr', error);
       return undefined;

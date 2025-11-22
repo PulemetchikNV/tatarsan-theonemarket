@@ -9,7 +9,7 @@ import type { CompanyAnalysisResult } from '../../types/index.js';
  * - Детальный отчет с визуализацией
  * - Рекомендации для инвесторов
  */
-export class ReportGeneratorAgent extends BaseAgent {
+export class ReportGeneratorAgent extends SimpleAgent {
   private promptTemplate: ChatPromptTemplate;
 
   constructor() {

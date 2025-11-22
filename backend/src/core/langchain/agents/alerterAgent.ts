@@ -10,7 +10,7 @@ import type { CompanyAnalysisResult } from '../../types/index.js';
  * 
  * Для MVP: простая генерация сообщений на основе анализа
  */
-export class AlerterAgent extends BaseAgent {
+export class AlerterAgent extends SimpleAgent {
   constructor() {
     super('Alerter');
   }
