@@ -10,8 +10,31 @@ dotenv.config();
 const AnalysisSchema = z.object({
     companyName: z.string().describe("The main company being analyzed"),
     industry: z
-        .enum(["Fintech", "AI", "Gaming", "E-commerce", "SaaS", "Other"])
-        .describe("The primary industry of the company"),
+        .enum([
+            // Финансы и бизнес
+            "FinTech", "InsurTech", "RegTech", "WealthTech", "PayTech", "LegalTech", "TaxTech",
+            // Здоровье и биология
+            "MedTech", "HealthTech", "BioTech", "FemTech", "PsyTech", "SexTech", "AgeTech",
+            // Образование и кадры
+            "EdTech", "HRTech", "JobTech", "WorkTech",
+            // Торговля и маркетинг
+            "E-com", "RetailTech", "MarTech", "AdTech", "SalesTech",
+            // Недвижимость и строительство
+            "PropTech", "ConTech", "CRETech",
+            // Экология, еда и ресурсы
+            "AgriTech", "FoodTech", "CleanTech", "GreenTech", "ClimateTech", "EnergyTech",
+            // Государство и безопасность
+            "GovTech", "CivicTech", "MilTech", "PoliceTech", "SpaceTech",
+            // Транспорт и логистика
+            "AutoTech", "MobilityTech", "LogisTech", "TravelTech", "AeroTech",
+            // Стиль жизни и культура
+            "FashionTech", "BeautyTech", "SportTech", "ArtTech", "GameTech",
+            // Общие понятия
+            "DeepTech", "HighTech", "HardTech", "LowTech",
+            // Дополнительные категории
+            "CloudTech", "DataTech", "AI", "CyberSecurity", "Other"
+        ])
+        .describe("The specific Tech industry category that best fits the company"),
     subIndustry: z.string().optional().describe("More specific detail about the industry"),
     techStack: z.array(z.string()).describe("List of technologies, frameworks, databases, cloud platforms used"),
     isStartup: z.boolean().describe("Whether the company is a startup (true) or established company (false)"),
