@@ -1,6 +1,6 @@
 import { logger } from '../../../utils/logger.js';
 import type { DataCollectorResult } from '../../../types/index.js';
-import { getEmployers, getEmployerDetail } from '../../../../mocks/dataApiMock.js';
+import { getEmployers, getEmployerDetail } from '../../../dataApi.js';
 
 /**
  * Data Collector Agent

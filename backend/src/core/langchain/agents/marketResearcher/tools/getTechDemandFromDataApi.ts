@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { getVacancyStats, getRoles } from '../../../../../mocks/dataApiMock.js';
+import { getVacancyStats, getRoles } from '../../../../dataApi.js';
 import { createModuleLogger } from '../../../../utils/logger.js';
 
 const logger = createModuleLogger('getTechDemandFromDataApi');

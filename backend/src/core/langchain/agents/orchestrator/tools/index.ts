@@ -25,3 +25,4 @@ export { classifyIndustryTool } from './classifyIndustryTool.js';
 export { researchMarketTool } from './researchMarketTool.js';
 export { generateReportTool } from './generateReportTool.js';
 export { analyzeDashboardTool } from './analyzeDashboardTool.js';
+export { generateDashboardReportTool } from './generateDashboardReportTool.js';
