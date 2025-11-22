@@ -38,9 +38,6 @@ const AnalysisSchema = z.object({
     subIndustry: z.string().optional().describe("More specific detail about the industry"),
     techStack: z.array(z.string()).describe("List of technologies, frameworks, databases, cloud platforms used"),
     isStartup: z.boolean().describe("Whether the company is a startup (true) or established company (false)"),
-    relatedCompanies: z
-        .array(z.string())
-        .describe("Other companies mentioned in the text, competitors or partners"),
     summary: z.string().describe("A brief summary of the company's technical focus"),
     confidence: z.number().min(0).max(1).describe("Confidence score of the analysis (0-1)"),
 });

@@ -19,7 +19,7 @@ Specific Focus:
    
    Choose the SINGLE category that best describes the company's core business.
 
-2. **Company Linking**: Identify the main "companyName" and any "relatedCompanies" (competitors, partners, etc.).
+2. **Company Name**: Identify the main company name.
 3. **Tech Stack**: Extract programming languages, frameworks, databases, cloud services, and infrastructure tools.
 4. **Startup Detection**: Determine if the company is a startup (true) or established company (false). 
    - Startups: typically young, growing, focused on innovation, may mention funding rounds, venture capital, or rapid scaling.
