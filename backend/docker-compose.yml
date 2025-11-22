@@ -1,0 +1,17 @@
+services:
+    bot:
+        build: .
+        env_file:
+            - .env
+        environment:
+            TG_BOT_TOKEN: ${TG_BOT_TOKEN}
+            DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?serverVersion=${POSTGRES_VERSION}&charset=utf8"
+            NODE_ENV: ${NODE_ENV:-production}
+            LOG_LEVEL: ${LOG_LEVEL:-info}
+        depends_on:
+            - postgres
+        restart: unless-stopped
+
+volumes:
+    postgres_data:
+        driver: local
