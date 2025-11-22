@@ -1,0 +1,40 @@
+---
+
+description: Принцип единой ответственности для bot/services
+globs:
+  - src/bot/handlers/**
+  - src/bot/services/**
+alwaysApply: true
+---
+- **Handler отвечает за UI/UX:** вся логика работы с Telegram API (`ctx.reply`, `ctx.api.editMessageText`, клавиатуры, индикаторы) должна быть ТОЛЬКО в handlers, НЕ в сервисах.
+- **Сервис отвечает за бизнес-логику:** сервисы принимают примитивы (`string`, `number`, доменные типы), обрабатывают данные и возвращают результат (`string`, `ValidationResult`, и т.п.), но НЕ отправляют сообщения.
+- **Разделение:** если видите в сервисе `ctx.reply()` или `ctx.api.editMessageText()` — это нарушение! Вынесите в handler.
+- **Паттерн:** `handler` получает данные от пользователя → вызывает `service.process(data)` → получает результат → handler решает КАК отобразить результат пользователю.
+- **Тестируемость:** сервисы легко тестировать без моков Telegram API, handlers тестируются с моками API.
+- **Переиспользование:** если сервис не знает о Telegram, его можно использовать в CLI, API, тестах, других ботах.
+
+**Пример нарушения ❌:**
+```typescript
+// aiService.ts
+async handleUserMessage(ctx: BotContext, text: string) {
+    await ctx.reply('Думаю...')  // ❌ сервис не должен работать с UI
+    const result = await this.process(text)
+    await ctx.reply(result)  // ❌
+}
+```
+
+**Правильный подход ✅:**
+```typescript
+// aiService.ts
+async processMessage(text: string): Promise<string> {
+    // Только обработка данных, без UI
+    return await this.agent.invoke(text)
+}
+
+// messageHandler.ts
+async function handler(ctx: BotContext) {
+    await ctx.reply('Думаю...')  // ✅ UI в handler
+    const result = await aiService.processMessage(text)
+    await ctx.reply(result)  // ✅ handler отвечает за отображение
+}
+```
