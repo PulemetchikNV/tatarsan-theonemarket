@@ -5,18 +5,16 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+RUN npm install -g pnpm
 # Install dependencies
-RUN npm install
+RUN pnpm i -d
 
 # Copy source code
 COPY . .
 
-# Build TypeScript
-RUN npm run build
-
 # Expose port
 EXPOSE 3000
 
-# Start server
-CMD ["npm", "start"]
+# Start server with tsx (no build needed)
+CMD ["npx", "tsx", "src/index.ts"]
 

@@ -2,7 +2,6 @@ import { ThinkingAgent } from '../baseAgent.js';
 import type { CompanyAnalysisResult } from '../../../types/index.js';
 import {
   collectDataTool,
-  analyzeDataTool,
   classifyIndustryTool,
   researchMarketTool,
   generateReportTool,
@@ -38,7 +37,6 @@ export class OrchestratorAgent extends ThinkingAgent {
       'Orchestrator',
       [
         collectDataTool,
-        analyzeDataTool,
         classifyIndustryTool,
         researchMarketTool,
         generateReportTool,
@@ -108,7 +106,7 @@ export class OrchestratorAgent extends ThinkingAgent {
         
 Выполни ВСЕ фазы в строгом порядке:
 1. ФАЗА 1: collect_data
-2. ФАЗА 2: analyze_data + classify_industry + research_market (параллельно)
+2. ФАЗА 2: classify_industry + research_market (параллельно)
 3. ФАЗА 3: generate_report
 
 Дай мне итоговый отчет!`
@@ -130,13 +128,6 @@ export class OrchestratorAgent extends ThinkingAgent {
         },
         dataCollector: {
           collectedAt: new Date().toISOString(),
-        },
-        analyzer: {
-          sentiment: 'neutral',
-          keyInsights: [],
-          strengths: [],
-          weaknesses: [],
-          techStackQuality: 50,
         },
         industryClassifier: {
           primaryIndustry: 'tech',

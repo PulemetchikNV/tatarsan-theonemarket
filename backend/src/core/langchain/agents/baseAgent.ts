@@ -1,5 +1,5 @@
 import { createAgent } from 'langchain';
-import type { ToolInterface } from '@langchain/core/tools';
+import type { Tool } from 'langchain';
 import { MODELS } from '../shared/models.js';
 import { logger } from '../../utils/logger.js';
 
@@ -26,7 +26,7 @@ export abstract class ThinkingAgent {
 
   constructor(
     agentName: string,
-    tools: ToolInterface[],
+    tools: Tool[],
     systemPrompt: string
   ) {
     this.agentName = agentName;
@@ -91,5 +91,6 @@ export abstract class ThinkingAgent {
 
 // Экспортируем как BaseAgent для обратной совместимости
 export { ThinkingAgent as BaseAgent };
+
 
 

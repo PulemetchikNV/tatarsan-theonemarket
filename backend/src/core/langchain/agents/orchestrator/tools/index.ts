@@ -1,13 +1,13 @@
 /**
  * Orchestrator Tools
  * 
- * Tools для вызова других агентов в правильной последовательности:
+ * Tools для управления процессом анализа компании через оркестратор.
+ * Каждый tool вызывает соответствующего специализированного агента.
  * 
  * ФАЗА 1: Сбор данных
  * - collect_data
  * 
  * ФАЗА 2: Анализ (параллельно)
- * - analyze_data
  * - classify_industry
  * - research_market
  * 
@@ -15,9 +15,7 @@
  * - generate_report
  */
 
-export * from './collectDataTool.js';
-export * from './analyzeDataTool.js';
-export * from './classifyIndustryTool.js';
-export * from './researchMarketTool.js';
-export * from './generateReportTool.js';
-
+export { collectDataTool } from './collectDataTool.js';
+export { classifyIndustryTool } from './classifyIndustryTool.js';
+export { researchMarketTool } from './researchMarketTool.js';
+export { generateReportTool } from './generateReportTool.js';

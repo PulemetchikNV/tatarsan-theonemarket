@@ -10,10 +10,6 @@
  * - get_tech_demand: проверяет спрос на конкретную технологию
  */
 
-// Импортируем из общих tools для переиспользования
-export {
-  researchMarketTool,
-  getTopTechnologiesTool,
-  getTechDemandTool,
-} from '../../tools/researchMarket.js';
-
+export { researchMarketTool } from './researchMarketTool.js';
+export { getTopTechnologiesTool } from './getTopTechnologiesTool.js';
+export { getTechDemandTool } from './getTechDemandTool.js';

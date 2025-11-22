@@ -16,7 +16,6 @@ export interface Company {
 export interface CompanyAnalysisResult {
   company: Company;
   dataCollector: DataCollectorResult;
-  analyzer: AnalyzerResult;
   industryClassifier: IndustryClassifierResult;
   marketResearcher: MarketResearcherResult;
   eventTracker: EventTrackerResult;
@@ -82,14 +81,6 @@ export interface LinkedInData {
   employeeCount?: number;
   followers?: number;
   recentPosts: number;
-}
-
-export interface AnalyzerResult {
-  sentiment: 'positive' | 'neutral' | 'negative';
-  keyInsights: string[];
-  strengths: string[];
-  weaknesses: string[];
-  techStackQuality: number; // 0-100
 }
 
 export interface IndustryClassifierResult {

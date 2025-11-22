@@ -11,7 +11,8 @@ export * from './collectGitHubData.js';
 export * from './collectHabrData.js';
 
 // Market Research Tools
-export * from './researchMarket.js';
+// Перенесены в marketResearcher/tools/
+// export * from './legacy-researchMarket.js';
 
 // Legacy Tools (будут переработаны позже)
 // export * from './legacy-newPosts.js';

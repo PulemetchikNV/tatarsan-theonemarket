@@ -7,7 +7,6 @@
 
 import type {
   DataCollectorResult,
-  AnalyzerResult,
   IndustryClassifierResult,
   MarketResearcherResult,
   EventTrackerResult,
@@ -20,16 +19,6 @@ import type {
 export interface DataCollectionOutput {
   success: boolean;
   data?: DataCollectorResult;
-  error?: string;
-  executionTime: number;
-}
-
-/**
- * ФАЗА 2: Анализ данных
- */
-export interface AnalysisOutput {
-  success: boolean;
-  data?: AnalyzerResult;
   error?: string;
   executionTime: number;
 }
@@ -55,7 +44,7 @@ export interface MarketResearchOutput {
 }
 
 /**
- * ФАЗА 2: Трекинг событий
+ * ФАЗА 2: Отслеживание событий
  */
 export interface EventTrackingOutput {
   success: boolean;
@@ -69,48 +58,20 @@ export interface EventTrackingOutput {
  */
 export interface ReportGenerationOutput {
   success: boolean;
-  reportData?: string; // JSON или HTML
-  format: 'json' | 'html';
+  data?: CompanyAnalysisResult;
   error?: string;
   executionTime: number;
 }
 
 /**
- * ФАЗА 3: Генерация алертов
- */
-export interface AlertGenerationOutput {
-  success: boolean;
-  alerts?: Array<{
-    level: 'info' | 'warning' | 'critical';
-    message: string;
-    category: string;
-  }>;
-  error?: string;
-  executionTime: number;
-}
-
-/**
- * ФИНАЛЬНАЯ ОЦЕНКА
- */
-export interface FinalDecisionOutput {
-  success: boolean;
-  healthScore?: number;
-  recommendation?: 'invest' | 'watch' | 'avoid';
-  reasoning?: string;
-  error?: string;
-  executionTime: number;
-}
-
-/**
- * Контекст выполнения для передачи между фазами
+ * Контекст выполнения для всего процесса
+ * Накапливает результаты всех фаз
  */
 export interface ExecutionContext {
   companyName: string;
   dataCollection?: DataCollectorResult;
-  analysis?: AnalyzerResult;
   classification?: IndustryClassifierResult;
   marketResearch?: MarketResearcherResult;
   eventTracking?: EventTrackerResult;
   startTime: number;
 }
-

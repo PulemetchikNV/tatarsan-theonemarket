@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { tool } from 'langchain'
+import { tool } from '@langchain/core/tools'
 import { createModuleLogger } from '../../utils'
 
 const logger = createModuleLogger('testTool')

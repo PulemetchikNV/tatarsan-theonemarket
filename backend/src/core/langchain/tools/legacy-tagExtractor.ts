@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { tool } from 'langchain'
+import { tool } from '@langchain/core/tools'
 import { rssService } from '../../services'
 import { createModuleLogger } from '../../utils'
 

@@ -103,13 +103,6 @@ export class ReportGeneratorAgent extends ThinkingAgent {
           articles: analysis.dataCollector.habrData?.totalArticles || 0,
         },
         
-        analyzer: {
-          sentiment: analysis.analyzer.sentiment,
-          strengths: analysis.analyzer.strengths,
-          weaknesses: analysis.analyzer.weaknesses,
-          keyInsights: analysis.analyzer.keyInsights,
-        },
-        
         classifier: {
           industry: analysis.industryClassifier.primaryIndustry,
           stage: analysis.industryClassifier.stage,
@@ -132,7 +125,7 @@ ${JSON.stringify(dataForReport, null, 2)}
 
 Используй ВСЕ инструменты для создания богатого визуального отчета:
 1. get_card - для метрик (Health Score: ${analysis.healthScore}/100, вакансии: ${dataForReport.metrics.vacancies}, etc)
-2. get_list - для списков (strengths: ${analysis.analyzer.strengths.length} пунктов, trends: ${analysis.marketResearcher.marketTrends.length} трендов)
+2. get_list - для списков (trends: ${analysis.marketResearcher.marketTrends.length} трендов)
 3. get_chart - для графика спроса на технологии (${Object.keys(analysis.marketResearcher.demandForTech).length} технологий)
 4. get_section - для структурирования
 

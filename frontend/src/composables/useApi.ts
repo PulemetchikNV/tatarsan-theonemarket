@@ -11,7 +11,7 @@ export type CompanyResponse = {
     htmlComponents: string
 }
 
-const IS_MOCKING_API = true
+const IS_MOCKING_API = false
 
 export const useApi = () => {
   const getDashboard = async (): Promise<DashboardResponse> => {
@@ -19,7 +19,7 @@ export const useApi = () => {
       return mockDashboardDelay()
     }
     
-    const response = await fetch('/api/v1/dashboard')
+    const response = await fetch('http://localhost:3000/api/v1/dashboard')
     return response.json()
   }
 
@@ -28,7 +28,7 @@ export const useApi = () => {
       return mockCompanyDelay(companyName)
     }
     
-    const response = await fetch(`/api/v1/company/${companyName}`)
+    const response = await fetch(`http://localhost:3000/api/v1/company/${companyName}`)
     return response.json()
   }
 

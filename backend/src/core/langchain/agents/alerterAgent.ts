@@ -1,5 +1,6 @@
 import { BaseAgent } from './baseAgent.js';
 import type { CompanyAnalysisResult } from '../../types/index.js';
+import { SimpleAgent } from './simpleAgent.js';
 
 /**
  * Alerter Agent
@@ -47,11 +48,6 @@ export class AlerterAgent extends SimpleAgent {
       if (analysis.eventTracker.investmentRounds.length > 0) {
         const latestRound = analysis.eventTracker.investmentRounds[0];
         alerts.push(`💸 Инвестиционный раунд: ${latestRound.type} - ${latestRound.amount || 'сумма не раскрыта'}`);
-      }
-
-      // Tech stack quality alerts
-      if (analysis.analyzer.techStackQuality >= 80) {
-        alerts.push(`⚡ Качественный tech stack (${analysis.analyzer.techStackQuality}/100)`);
       }
 
       return alerts;
