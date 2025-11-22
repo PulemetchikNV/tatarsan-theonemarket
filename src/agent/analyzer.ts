@@ -13,7 +13,8 @@ const AnalysisSchema = z.object({
         .enum(["Fintech", "AI", "Gaming", "E-commerce", "SaaS", "Other"])
         .describe("The primary industry of the company"),
     subIndustry: z.string().optional().describe("More specific detail about the industry"),
-    techStack: z.array(z.string()).describe("List of technologies used"),
+    techStack: z.array(z.string()).describe("List of technologies, frameworks, databases, cloud platforms used"),
+    isStartup: z.boolean().describe("Whether the company is a startup (true) or established company (false)"),
     relatedCompanies: z
         .array(z.string())
         .describe("Other companies mentioned in the text, competitors or partners"),
