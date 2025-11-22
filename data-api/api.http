@@ -1,0 +1,214 @@
+### API тесты для HeadHunter парсера
+
+@baseUrl = http://localhost:8100
+@apiUrl = {{baseUrl}}/api
+
+###
+### КОНТРАКТЫ ВЫХОДНЫХ ДАННЫХ
+###
+
+### GET /api/roles
+# Успешный ответ (200):
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "id": "165",
+#       "name": "Data Scientist"
+#     },
+#     ...
+#   ],
+#   "total": 10
+# }
+
+### GET /api/vacancies/stats/daily
+# Query параметры:
+#   - role: string (опционально) - ID роли для фильтрации
+#   - days: int (опционально, по умолчанию 30) - количество дней (1-365)
+#
+# Успешный ответ (200):
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "date": "2024-11-20",
+#       "count": 15
+#     },
+#     {
+#       "date": "2024-11-21",
+#       "count": 23
+#     },
+#     ...
+#   ],
+#   "filters": {
+#     "role": {
+#       "id": "165",
+#       "name": "Data Scientist"
+#     } | null,
+#     "days": 30,
+#     "start_date": "2024-10-22",
+#     "end_date": "2024-11-21"
+#   },
+#   "total": 30
+# }
+#
+# Ошибка валидации (400):
+# {
+#   "success": false,
+#   "error": "Параметр days должен быть от 1 до 365"
+# }
+# или
+# {
+#   "success": false,
+#   "error": "Роль с ID '99999' не найдена"
+# }
+
+### GET /api/employers
+# Query параметры:
+#   - page: int (опционально, по умолчанию 1) - номер страницы
+#   - limit: int (опционально, по умолчанию 20, максимум 100) - количество на странице
+#   - search: string (опционально) - поиск по названию компании
+#
+# Успешный ответ (200):
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "id": 1,
+#       "name": "ООО Компания",
+#       "description": "Описание компании...",
+#       "source": "hh",
+#       "source_id": "12345",
+#       "vacancies_count": 5,
+#       "created_at": "2024-11-20 10:00:00",
+#       "updated_at": "2024-11-21 15:30:00"
+#     },
+#     ...
+#   ],
+#   "pagination": {
+#     "page": 1,
+#     "limit": 20,
+#     "total": 150,
+#     "pages": 8
+#   }
+# }
+
+### GET /api/employers/{id}
+# Path параметры:
+#   - id: int - ID работодателя в БД
+#
+# Успешный ответ (200):
+# {
+#   "success": true,
+#   "data": {
+#     "id": 1,
+#     "name": "ООО Компания",
+#     "description": "Описание компании...",
+#     "source": "hh",
+#     "source_id": "12345",
+#     "vacancies_count": 3,
+#     "vacancies": [
+#       {
+#         "id": 10,
+#         "name": "Data Scientist",
+#         "description": "Описание вакансии...",
+#         "requirements": "Требования...",
+#         "role": "165",
+#         "role_name": "Data Scientist",
+#         "salary_from": 150000,
+#         "salary_to": 300000,
+#         "salary_currency": "RUR",
+#         "published_at": "2024-11-20 12:00:00",
+#         "parsed_at": "2024-11-21 10:00:00"
+#       },
+#       ...
+#     ],
+#     "created_at": "2024-11-20 10:00:00",
+#     "updated_at": "2024-11-21 15:30:00"
+#   }
+# }
+#
+# Ошибка (404):
+# {
+#   "success": false,
+#   "error": "Работодатель не найден"
+# }
+
+###
+### ТЕСТОВЫЕ ЗАПРОСЫ
+###
+
+### 1. Получить список всех ролей
+# Ответ: { "success": true, "data": [...], "total": N }
+GET {{apiUrl}}/roles
+Accept: application/json
+
+### 2. Статистика вакансий по дням (последние 30 дней, все роли)
+# Ответ: { "success": true, "data": [{ "date": "...", "count": N }], "filters": {...}, "total": 30 }
+GET {{apiUrl}}/vacancies/stats/daily
+Accept: application/json
+
+### 3. Статистика вакансий по дням (последние 7 дней)
+GET {{apiUrl}}/vacancies/stats/daily?days=7
+Accept: application/json
+
+### 4. Статистика вакансий по дням (последние 90 дней)
+GET {{apiUrl}}/vacancies/stats/daily?days=90
+Accept: application/json
+
+### 5. Статистика вакансий Data Scientist (роль 165) за последние 30 дней
+GET {{apiUrl}}/vacancies/stats/daily?role=165
+Accept: application/json
+
+### 6. Статистика вакансий Data Scientist за последние 7 дней
+GET {{apiUrl}}/vacancies/stats/daily?role=165&days=7
+Accept: application/json
+
+### 7. Статистика вакансий Developer (роль 96) за последние 30 дней
+GET {{apiUrl}}/vacancies/stats/daily?role=96
+Accept: application/json
+
+### 8. Статистика вакансий DevOps (роль 160) за последние 14 дней
+GET {{apiUrl}}/vacancies/stats/daily?role=160&days=14
+Accept: application/json
+
+### 9. Статистика вакансий QA Engineer (роль 124) за последние 60 дней
+GET {{apiUrl}}/vacancies/stats/daily?role=124&days=60
+Accept: application/json
+
+### 10. Ошибка: неверный параметр days (должен быть 1-365)
+GET {{apiUrl}}/vacancies/stats/daily?days=500
+Accept: application/json
+
+### 11. Ошибка: несуществующая роль
+GET {{apiUrl}}/vacancies/stats/daily?role=99999
+Accept: application/json
+
+### 12. Список работодателей (первая страница, 20 на странице)
+# Ответ: { "success": true, "data": [...], "pagination": {...} }
+GET {{apiUrl}}/employers
+Accept: application/json
+
+### 13. Список работодателей (страница 2, 10 на странице)
+GET {{apiUrl}}/employers?page=2&limit=10
+Accept: application/json
+
+### 14. Поиск работодателей по названию
+GET {{apiUrl}}/employers?search=Банк
+Accept: application/json
+
+### 15. Детальная информация о работодателе (ID = 46)
+# Ответ: { "success": true, "data": { "id": 46, "name": "...", "vacancies": [...] } }
+GET {{apiUrl}}/employers/46
+Accept: application/json
+
+### 16. Детальная информация о работодателе (ID = 52)
+# Ответ: { "success": true, "data": { "id": 52, "name": "...", "vacancies": [...] } }
+GET {{apiUrl}}/employers/52
+Accept: application/json
+
+### 17. Ошибка: работодатель не найден
+# Ответ: { "success": false, "error": "Работодатель не найден" } (404)
+GET {{apiUrl}}/employers/99999
+Accept: application/json
+
