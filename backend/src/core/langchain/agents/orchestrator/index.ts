@@ -216,14 +216,14 @@ export class OrchestratorAgent extends ThinkingAgent {
    * БЕЗ привязки к конкретным компаниям - анализ рынка в целом
    * 
    * Агент САМ использует analyze_dashboard + generate_dashboard_report
-   * Возвращает готовый HTML
+   * Возвращает структурированный объект
    */
-  async analyzeDashboard(region: string = 'Татарстан'): Promise<string> {
+  async analyzeDashboard(region: string = 'Татарстан'): Promise<{ htmlComponents: string; totalHealthScore: number }> {
     return this.execute(async () => {
       this.log(`📊 Starting dashboard analysis for region: ${region}`);
 
-      // Вызываем ДУМАЮЩЕГО агента - он САМ выполнит ОБА шага!
-      const response = await this.invokeAgent(
+      // ШАГ 1: Агент выполняет tools
+      const agentResponse = await this.invokeAgent(
         `Создай ДАШБОРД для IT-рынка региона "${region}".
 
 Выполни ОБА шага ПОСЛЕДОВАТЕЛЬНО:
@@ -236,17 +236,67 @@ export class OrchestratorAgent extends ThinkingAgent {
 
 Это обзор ВСЕГО рынка региона, НЕ конкретной компании!
 
-Дай мне финальный HTML дашборда!`
+После выполнения ОБОИХ шагов верни JSON объект в формате:
+{
+  "htmlComponents": "<div>ПОЛНЫЙ HTML дашборда</div>",
+  "totalHealthScore": 75
+}
+
+totalHealthScore рассчитай как оценку здоровья IT-инфраструктуры региона (0-100) на основе:
+- количество работодателей (больше = лучше)
+- количество вакансий (больше = лучше)  
+- динамика рынка (рост = лучше)
+- разнообразие технологий (больше = лучше)
+
+ВАЖНО: Верни ТОЛЬКО валидный JSON, без markdown, без текста до/после!`
       );
 
-      this.log('Dashboard analysis completed', {
-        hasResponse: !!response,
+      this.log('Agent response received', {
+        responseType: typeof agentResponse,
       });
 
-      // TODO: Извлечь HTML из ответа агента
-      // Агент вызвал оба tools, нужно достать финальный HTML
+      // ШАГ 2: Парсим JSON из ответа
+      let result: { htmlComponents: string; totalHealthScore: number };
       
-      return response as string;
+      try {
+        // Если агент вернул строку с JSON - парсим
+        if (typeof agentResponse === 'string') {
+          // Убираем markdown если есть
+          const cleaned = agentResponse
+            .replace(/```json\n?/g, '')
+            .replace(/```\n?/g, '')
+            .trim();
+          
+          result = JSON.parse(cleaned);
+        } else {
+          // Если уже объект
+          result = agentResponse as any;
+        }
+
+        // Валидация
+        if (!result.htmlComponents || typeof result.totalHealthScore !== 'number') {
+          throw new Error('Invalid response format');
+        }
+
+      } catch (error) {
+        this.logError('Failed to parse agent response', error);
+        
+        // Fallback: используем весь ответ как HTML
+        result = {
+          htmlComponents: typeof agentResponse === 'string' 
+            ? agentResponse 
+            : '<div class="content-wrap"><p>Ошибка формата ответа</p></div>',
+          totalHealthScore: 50,
+        };
+      }
+
+      this.log('Dashboard analysis completed', {
+        hasHtml: !!result.htmlComponents,
+        htmlLength: result.htmlComponents.length,
+        healthScore: result.totalHealthScore,
+      });
+
+      return result;
     });
   }
 }

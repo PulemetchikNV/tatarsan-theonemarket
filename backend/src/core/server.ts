@@ -45,16 +45,13 @@ export async function createServer() {
       // Оркестратор вызовет ДУМАЮЩЕГО агента который:
       // 1. Использует analyze_dashboard tool → получит рыночные данные
       // 2. Использует generate_dashboard_report tool → создаст HTML
-      const htmlComponents = await orchestratorAgent.analyzeDashboard('Татарстан');
+      // 3. Вернет структурированный JSON с htmlComponents и totalHealthScore
+      const dashboardResponse = await orchestratorAgent.analyzeDashboard('Татарстан');
 
       logger.info({
-        htmlLength: htmlComponents.length,
-      }, 'Dashboard HTML received from orchestrator');
-
-      const dashboardResponse = {
-        htmlComponents,
-        totalHealthScore: 0, // Для совместимости, но не используется
-      };
+        htmlLength: dashboardResponse.htmlComponents.length,
+        healthScore: dashboardResponse.totalHealthScore,
+      }, 'Dashboard received from orchestrator');
 
       logger.info('✅ Dashboard response sent (market analysis via AI)');
       return dashboardResponse;

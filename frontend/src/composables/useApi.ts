@@ -11,7 +11,7 @@ export type CompanyResponse = {
     htmlComponents: string
 }
 
-const IS_MOCKING_API = true
+const IS_MOCKING_API = false
 
 export const useApi = () => {
   const getDashboard = async (): Promise<DashboardResponse> => {
