@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { tool } from '@langchain/core/tools';
-import { reportGeneratorAgent } from '../../reportGeneratorAgent.js';
+import { reportGeneratorAgent } from '../../reportGenerator/index.js';
 import { createModuleLogger } from '../../../../utils/logger.js';
 import type { ReportGenerationOutput } from '../types.js';
 import type { CompanyAnalysisResult } from '../../../../types/index.js';

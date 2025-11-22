@@ -1,27 +1,33 @@
-import { BaseAgent } from './baseAgent.js';
-import type { DataCollectorResult, MarketResearcherResult } from '../../types/index.js';
+import { ThinkingAgent } from '../baseAgent.js';
+import type { DataCollectorResult, MarketResearcherResult } from '../../../types/index.js';
 import {
   researchMarketTool,
   getTopTechnologiesTool,
   getTechDemandTool,
-} from '../tools/index.js';
+} from './tools/index.js';
 
 /**
  * Market Researcher Agent
  * 
- * АВТОНОМНЫЙ агент для исследования IT-рынка.
+ * ДУМАЮЩИЙ агент для исследования IT-рынка Татарстана.
  * Использует LangChain tools и САМ решает:
  * - Какие исследования провести
  * - Какие технологии анализировать
  * - Как оценить потенциал роста
  * 
- * Tools:
+ * КОНТРАКТ:
+ * Input:  companyName: string, collectedData: DataCollectorResult
+ * Output: MarketResearcherResult
+ * 
+ * Используется в:
+ * - orchestrator/tools/researchMarketTool.ts
+ * 
+ * Tools (внутренние):
  * - research_market: проводит рыночное исследование
  * - get_top_technologies: получает топ технологий по спросу
  * - get_tech_demand: проверяет спрос на конкретную технологию
  */
-export class MarketResearcherAgent extends BaseAgent {
-
+export class MarketResearcherAgent extends ThinkingAgent {
   constructor() {
     super(
       'MarketResearcher',
@@ -70,6 +76,10 @@ export class MarketResearcherAgent extends BaseAgent {
   /**
    * Проводит рыночное исследование через AI агента
    * Агент САМ решает какие инструменты использовать
+   * 
+   * @param companyName - название компании
+   * @param collectedData - собранные данные из DataCollector
+   * @returns MarketResearcherResult - результат рыночного исследования
    */
   async research(companyName: string, collectedData: DataCollectorResult): Promise<MarketResearcherResult> {
     return this.execute(async () => {

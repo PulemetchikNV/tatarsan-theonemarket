@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { tool } from '@langchain/core/tools';
-import { industryClassifierAgent } from '../../industryClassifierAgent.js';
+import { industryClassifierAgent } from '../../industryClassifier/index.js';
 import { createModuleLogger } from '../../../../utils/logger.js';
 import type { ClassificationOutput } from '../types.js';
 import type { Company, DataCollectorResult } from '../../../../types/index.js';

@@ -1,22 +1,29 @@
-import { logger } from '../../utils/logger.js';
-import type { DataCollectorResult, HHData, GitHubData, HabrData } from '../../types/index.js';
-import { fetchHHVacancies } from '../../../mocks/hhMock.js';
-import { fetchGitHubRepos } from '../../../mocks/githubMock.js';
-import { fetchHabrArticles } from '../../../mocks/habrMock.js';
+import { logger } from '../../../utils/logger.js';
+import type { DataCollectorResult, HHData, GitHubData, HabrData } from '../../../types/index.js';
+import { fetchHHVacancies } from '../../../../mocks/hhMock.js';
+import { fetchGitHubRepos } from '../../../../mocks/githubMock.js';
+import { fetchHabrArticles } from '../../../../mocks/habrMock.js';
 
 /**
  * Data Collector Agent
  * 
- * Простой агент для сбора данных о компании из разных источников.
- * Не использует AI - просто параллельно собирает данные из всех источников.
+ * Простой служебный агент для сбора данных о компании из разных источников.
+ * НЕ использует AI - просто параллельно собирает данные из всех источников.
  * 
  * Источники:
  * - HH.ru (вакансии)
  * - GitHub (репозитории, активность)
  * - Habr (статьи, упоминания)
  * 
+ * КОНТРАКТ:
+ * Input:  companyName: string
+ * Output: DataCollectorResult
+ * 
+ * Используется в:
+ * - orchestrator/tools/collectDataTool.ts
+ * 
  * Примечание: Это "служебный" агент без AI.
- * Реальные "думающие" агенты: MarketResearcher, Analyzer, Orchestrator
+ * Реальные "думающие" агенты: MarketResearcher, Orchestrator
  */
 export class DataCollectorAgent {
   private agentName = 'DataCollector';
@@ -31,6 +38,9 @@ export class DataCollectorAgent {
 
   /**
    * Собирает данные о компании из всех источников параллельно
+   * 
+   * @param companyName - название компании
+   * @returns DataCollectorResult - структурированные данные из всех источников
    */
   async collect(companyName: string): Promise<DataCollectorResult> {
     const startTime = Date.now();
@@ -110,5 +120,4 @@ export class DataCollectorAgent {
 }
 
 export const dataCollectorAgent = new DataCollectorAgent();
-
 

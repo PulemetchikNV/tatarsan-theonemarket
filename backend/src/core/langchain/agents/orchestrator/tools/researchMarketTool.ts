@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { tool } from '@langchain/core/tools';
-import { marketResearcherAgent } from '../../marketResearcherAgent.js';
+import { marketResearcherAgent } from '../../marketResearcher/index.js';
 import { createModuleLogger } from '../../../../utils/logger.js';
 import type { MarketResearchOutput } from '../types.js';
 import type { DataCollectorResult } from '../../../../types/index.js';

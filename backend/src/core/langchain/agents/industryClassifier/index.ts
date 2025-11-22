@@ -1,8 +1,28 @@
 import { z } from 'zod';
-import { SimpleAgent } from './simpleAgent.js';
-import { MODELS } from '../shared/models.js';
+import { SimpleAgent } from '../simpleAgent.js';
+import { MODELS } from '../../shared/models.js';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import type { Company, DataCollectorResult, IndustryClassifierResult } from '../../types/index.js';
+import type { Company, DataCollectorResult, IndustryClassifierResult } from '../../../types/index.js';
+
+/**
+ * Industry Classifier Agent
+ * 
+ * Простой агент для классификации компаний по Tech-индустриям.
+ * НЕ использует AI tools - использует withStructuredOutput для строгой валидации.
+ * 
+ * Особенности:
+ * - Zod-схема для структурированного вывода
+ * - GPT модели из централизованной конфигурации
+ * - Детальная классификация по 40+ категориям Tech-индустрий
+ * - Определение стадии развития (idea/pre-seed/seed/growth/mature)
+ * 
+ * КОНТРАКТ:
+ * Input:  company: Company, collectedData: DataCollectorResult
+ * Output: IndustryClassifierResult
+ * 
+ * Используется в:
+ * - orchestrator/tools/classifyIndustryTool.ts
+ */
 
 // Zod-схема для строгой валидации ответа LLM
 const AnalysisSchema = z.object({
@@ -71,15 +91,6 @@ Text to analyze:
 "{text}"
 `);
 
-/**
- * Industry Classifier Agent
- * Классифицирует компанию по Tech-индустриям с использованием NLP и строгой валидации
- * 
- * Использует:
- * - Zod-схему для структурированного вывода
- * - GPT модели из централизованной конфигурации
- * - Детальную классификацию по 40+ категориям Tech-индустрий
- */
 export class IndustryClassifierAgent extends SimpleAgent {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private runnable: any;
@@ -96,6 +107,10 @@ export class IndustryClassifierAgent extends SimpleAgent {
 
   /**
    * Классифицирует компанию по индустрии на основе собранных данных
+   * 
+   * @param company - информация о компании
+   * @param collectedData - собранные данные из DataCollector
+   * @returns IndustryClassifierResult - результат классификации
    */
   async classify(company: Company, collectedData: DataCollectorResult): Promise<IndustryClassifierResult> {
     return this.execute(async () => {

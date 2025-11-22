@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { tool } from '@langchain/core/tools';
-import { dataCollectorAgent } from '../../dataCollectorAgent.js';
+import { dataCollectorAgent } from '../../dataCollector/index.js';
 import { createModuleLogger } from '../../../../utils/logger.js';
 import type { DataCollectionOutput } from '../types.js';
 

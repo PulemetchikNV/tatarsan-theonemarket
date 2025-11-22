@@ -12,11 +12,11 @@ export { SimpleAgent } from './simpleAgent.js';
 export { orchestratorAgent, OrchestratorAgent } from './orchestrator/index.js';
 
 // 7 Specialized Agents
-export { dataCollectorAgent, DataCollectorAgent } from './dataCollectorAgent.js';
+export { dataCollectorAgent, DataCollectorAgent } from './dataCollector/index.js';
 export { analyzerAgent, AnalyzerAgent } from './analyzerAgent.js';
-export { industryClassifierAgent, IndustryClassifierAgent } from './industryClassifierAgent.js';
-export { marketResearcherAgent, MarketResearcherAgent } from './marketResearcherAgent.js';
+export { industryClassifierAgent, IndustryClassifierAgent } from './industryClassifier/index.js';
+export { marketResearcherAgent, MarketResearcherAgent } from './marketResearcher/index.js';
 export { eventTrackerAgent, EventTrackerAgent } from './eventTrackerAgent.js';
 export { alerterAgent, AlerterAgent } from './alerterAgent.js';
-export { reportGeneratorAgent, ReportGeneratorAgent } from './reportGeneratorAgent.js';
+export { reportGeneratorAgent, ReportGeneratorAgent } from './reportGenerator/index.js';
 
