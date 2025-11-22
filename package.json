@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "tsx src/index.ts",
-    "debug": "tsx debug.ts"
+    "debug": "tsx debug.ts",
+    "debug:events": "tsx debug-events.ts"
   },
   "keywords": [],
   "author": "",
