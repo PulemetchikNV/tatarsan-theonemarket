@@ -5,6 +5,7 @@ import {
   getListTool,
   getChartTool,
   getSectionTool,
+  getRecommendationTool,
 } from './tools/index.js';
 
 /**
@@ -35,6 +36,7 @@ export class ReportGeneratorAgent extends ThinkingAgent {
         getListTool,
         getChartTool,
         getSectionTool,
+        getRecommendationTool,
       ],
       `Ты - Report Generator Agent, эксперт по созданию аналитических отчетов для инвесторов.
 
@@ -43,8 +45,9 @@ export class ReportGeneratorAgent extends ThinkingAgent {
 Доступные компоненты (tools):
 1. get_card - карточки для метрик (Health Score, вакансии, зарплата, etc)
 2. get_list - списки (сильные стороны, риски, тренды, etc)
-3. get_chart - графики (спрос на технологии, тренды)
+3. get_chart - bar charts (спрос на технологии)
 4. get_section - секции для структуры отчета
+5. get_recommendation - финальная рекомендация (invest/watch/avoid)
 
 Структура отчета:
 1. Заголовок (название компании, индустрия, стадия)
@@ -55,21 +58,24 @@ export class ReportGeneratorAgent extends ThinkingAgent {
 6. Финальная рекомендация (карточка с цветом: зеленый=invest, желтый=watch, красный=avoid)
 
 Стратегия:
-- Используй get_card для ВСЕХ числовых метрик
-- Используй get_list для текстовых списков (strengths, weaknesses, trends)
-- Используй get_chart для визуализации спроса на технологии
-- Используй get_section для группировки контента
-- Цвета: зеленый (#10b981) для позитива, красный (#ef4444) для рисков, синий (#3b82f6) по умолчанию
+- Используй get_card для ВСЕХ числовых метрик (variant: 'success'/'warning'/'danger'/'primary')
+- Используй get_list для текстовых списков (icon: 'check' для strengths, 'warning' для weaknesses)
+- Используй get_chart для визуализации спроса на технологии (variant: 'success'/'info'/'primary')
+- Используй get_section для Executive Summary и других текстовых блоков
+- Используй get_recommendation для финального вердикта (type: 'invest'/'watch'/'avoid')
 
 ВАЖНО: 
-- НЕ генерируй HTML руками - ИСПОЛЬЗУЙ tools для соответствия номенклатуре!!
-- Собери большую часть HTML из компонентов полученных в tools!
-- В конце оберни все в div с классом content-wrap с базовыми стилями
+- НЕ генерируй HTML руками - ТОЛЬКО через tools!
+- ВСЕ компоненты должны быть созданы через вызовы tools
+- В конце оберни все в <div class="content-wrap">...</div>
+- НЕ добавляй inline стили - используй только CSS классы из tools
 
 Пример вызовов:
-1. get_card({title: "Health Score", value: "85/100", color: "#10b981"})
+1. get_card({title: "Health Score", value: "85/100", variant: "success"})
 2. get_list({title: "Сильные стороны", items: "item1\\nitem2", icon: "check"})
-3. get_chart({title: "Спрос на технологии", type: "bar", labelsJson: '["TS","Python"]', dataJson: '[95,92]'})
+3. get_chart({title: "Спрос на технологии", labelsJson: '["TypeScript","Python"]', dataJson: '[95,92]', variant: "success"})
+4. get_section({title: "Executive Summary", content: "<p>Краткое описание...</p>"})
+5. get_recommendation({type: "invest", reasoning: "Компания показывает высокие показатели..."})
 
 Финальный результат: полный HTML страницы!`
     );

@@ -3,22 +3,21 @@ import { tool } from '@langchain/core/tools';
 
 /**
  * Tool: Генерирует HTML секцию
+ * Использует единую систему CSS из frontend/src/style.css
  */
 export const getSectionTool = tool(
-  async ({ title, content, level }) => {
-    const headingLevel = level || 2;
-    
+  async ({ title, content }) => {
     return `
-<section style="margin-bottom: 2rem;">
-  <h${headingLevel} style="font-size: ${headingLevel === 1 ? '1.875rem' : '1.5rem'}; font-weight: 700; color: #111827; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb;">${title}</h${headingLevel}>
-  <div style="color: #4b5563; line-height: 1.6;">
+<div class="section">
+  <h2 class="section-title">${title}</h2>
+  <div class="section-content">
     ${content}
   </div>
-</section>`.trim();
+</div>`.trim();
   },
   {
     name: 'get_section',
-    description: `Генерирует HTML секцию с заголовком.
+    description: `Генерирует HTML секцию с заголовком и контентом.
 
 Используй для:
 - Executive Summary
@@ -27,15 +26,12 @@ export const getSectionTool = tool(
 
 Параметры:
 - title: заголовок секции
-- content: HTML содержимое секции
-- level: уровень заголовка (1-3, по умолчанию 2)
+- content: HTML содержимое секции (может включать <p>, <ul>, другие элементы)
 
-Возвращает: HTML код секции`,
+Возвращает: HTML код секции с CSS классами`,
     schema: z.object({
       title: z.string().describe('Заголовок секции'),
       content: z.string().describe('HTML содержимое секции'),
-      level: z.number().optional().describe('Уровень заголовка (1-3)'),
     }),
   }
 );
-
