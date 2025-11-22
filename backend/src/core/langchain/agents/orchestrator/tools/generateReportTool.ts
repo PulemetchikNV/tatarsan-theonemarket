@@ -1,9 +1,8 @@
 import { z } from 'zod';
 import { tool } from '@langchain/core/tools';
 import { reportGeneratorAgent } from '../../reportGenerator/index.js';
-import { createModuleLogger } from '../../../../utils/logger.js';
+import { createModuleLogger } from '../../../../utils/index.js';
 import type { ReportGenerationOutput } from '../types.js';
-import type { CompanyAnalysisResult } from '../../../../types/index.js';
 
 const logger = createModuleLogger('generateReportTool');
 
@@ -14,54 +13,73 @@ const logger = createModuleLogger('generateReportTool');
  * Генерирует итоговый отчет для фронтенда
  */
 export const generateReportTool = tool(
-  async ({ analysisResultJson, format }) => {
+  async ({ analysisResultJson, format }: { analysisResultJson: string; format: string }): Promise<ReportGenerationOutput> => {
     const startTime = Date.now();
     
     try {
       logger.info({ format }, '🔍 [PHASE 3] Starting report generation');
 
-      const analysisResult: CompanyAnalysisResult = JSON.parse(analysisResultJson);
-      const reportData = await reportGeneratorAgent.generateReport(analysisResult);
+      // Логируем что приходит (первые 300 символов)
+      logger.info({ 
+        jsonPreview: analysisResultJson.substring(0, 300),
+        length: analysisResultJson.length 
+      }, 'Received analysisResultJson - passing as-is to reportGenerator');
+      
+      // Передаем строку как есть - без валидации и парсинга!
+      let reportData: string | undefined;
+      let lastError: Error | null = null;
+      const maxRetries = 3;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          logger.info({ attempt, maxRetries }, 'Attempting report generation');
+          // Передаем RAW строку - пусть reportGenerator сам разбирается
+          reportData = await reportGeneratorAgent.generateReport(analysisResultJson);
+          logger.info({ attempt }, 'Report generated successfully');
+          break;
+        } catch (err) {
+          lastError = err as Error;
+          logger.warn({ 
+            attempt, 
+            maxRetries, 
+            error: lastError.message,
+            stack: lastError.stack
+          }, 'Report generation attempt failed');
+          
+          if (attempt === maxRetries) {
+            throw new Error(`Failed to generate report after ${maxRetries} attempts: ${lastError.message}`);
+          }
+          
+          // Небольшая задержка перед retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+      
+      if (!reportData) {
+        throw new Error('Report data is undefined after all retries');
+      }
+      
       const executionTime = Date.now() - startTime;
 
       logger.info({ executionTime, format }, '✅ [PHASE 3] Report generation completed');
 
-      const output: ReportGenerationOutput = {
+      return {
         success: true,
-        reportData: JSON.stringify(reportData),
-        format: format as 'json' | 'html',
+        reportData,
+        format,
         executionTime,
       };
-
-      return `✅ **ФАЗА 3 ЗАВЕРШЕНА: Отчет сгенерирован**
-
-📄 Отчет создан за ${executionTime}ms
-📊 Формат: ${format}
-📦 Размер: ${JSON.stringify(reportData).length} байт
-
-🎉 АНАЛИЗ ЗАВЕРШЕН!
-
-Итоговые метрики:
-- Health Score: ${analysisResult.healthScore}/100
-- Рекомендация: ${analysisResult.recommendation === 'invest' ? '✅ ИНВЕСТИРОВАТЬ' : analysisResult.recommendation === 'watch' ? '👀 НАБЛЮДАТЬ' : '❌ ИЗБЕГАТЬ'}
-- Обоснование: ${analysisResult.reasoning}
-
-📤 Отчет готов к отправке на фронтенд!`;
 
     } catch (error) {
       const executionTime = Date.now() - startTime;
       logger.error({ err: error, executionTime }, '❌ [PHASE 3] Report generation failed');
 
-      const output: ReportGenerationOutput = {
+      return {
         success: false,
-        format: format as 'json' | 'html',
         error: error instanceof Error ? error.message : 'Unknown error',
+        format,
         executionTime,
       };
-
-      return `❌ **ФАЗА 3 ПРОВАЛЕНА: Ошибка генерации отчета**
-
-Ошибка: ${output.error}`;
     }
   },
   {
@@ -74,7 +92,7 @@ export const generateReportTool = tool(
 - ЭТО ФИНАЛЬНЫЙ ШАГ анализа!
 
 ПАРАМЕТРЫ:
-- analysisResultJson: полный результат анализа (JSON)
+- analysisResultJson: ТОЛЬКО чистый JSON строкой (без текста до/после)
 - format: формат отчета ('json' или 'html')
 
 ВОЗВРАЩАЕТ:
@@ -83,9 +101,10 @@ export const generateReportTool = tool(
 - Рекомендацию (invest/watch/avoid)
 - Обоснование решения
 
+⚠️ КРИТИЧНО: analysisResultJson должен быть ТОЛЬКО валидный JSON без дополнительного текста!
 ВАЖНО: Это ПОСЛЕДНИЙ инструмент! После него анализ завершен!`,
     schema: z.object({
-      analysisResultJson: z.string().describe('JSON с полным результатом анализа'),
+      analysisResultJson: z.string().describe('Чистый валидный JSON (без markdown, без текста до/после). Пример: {"collect_data":{...},"classify_industry":{...}}'),
       format: z.enum(['json', 'html']).describe('Формат отчета (json или html)'),
     }),
   }

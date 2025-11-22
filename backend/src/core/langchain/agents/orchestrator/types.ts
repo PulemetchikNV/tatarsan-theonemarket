@@ -58,7 +58,9 @@ export interface EventTrackingOutput {
  */
 export interface ReportGenerationOutput {
   success: boolean;
+  reportData?: string;
   data?: CompanyAnalysisResult;
+  format?: string;
   error?: string;
   executionTime: number;
 }

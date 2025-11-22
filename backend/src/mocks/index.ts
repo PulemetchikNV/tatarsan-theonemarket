@@ -9,4 +9,5 @@ export * from './hhMock.js';
 export * from './githubMock.js';
 export * from './habrMock.js';
 export * from './marketMock.js';
+export * from './dataApiMock.js';
 

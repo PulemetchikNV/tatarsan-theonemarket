@@ -53,7 +53,7 @@ const AnalysisSchema = z.object({
       'CloudTech', 'DataTech', 'AI', 'CyberSecurity', 'Other',
     ])
     .describe('The specific Tech industry category that best fits the company'),
-  subIndustry: z.string().optional().describe('More specific detail about the industry'),
+  subIndustry: z.string().nullable().default(null).describe('More specific detail about the industry'),
   techStack: z.array(z.string()).describe('List of technologies, frameworks, databases, cloud platforms used'),
   isStartup: z.boolean().describe('Whether the company is a startup (true) or established company (false)'),
   summary: z.string().describe("A brief summary of the company's technical focus"),
@@ -192,11 +192,11 @@ export class IndustryClassifierAgent extends SimpleAgent {
     const stage = this.determineStage(nlpResult);
 
     // Вторичные индустрии из subIndustry
-    const secondaryIndustries = nlpResult.subIndustry 
+    const secondaryIndustries = nlpResult.subIndustry && nlpResult.subIndustry !== null
       ? [nlpResult.subIndustry] 
       : [];
 
-    return {
+      return {
       primaryIndustry: nlpResult.industry,
       secondaryIndustries,
       confidence: Math.round(nlpResult.confidence * 100), // 0-1 -> 0-100

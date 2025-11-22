@@ -1,8 +1,10 @@
 /**
  * Orchestrator Tools
  * 
- * Tools для управления процессом анализа компании через оркестратор.
+ * Tools для управления процессом анализа через оркестратор.
  * Каждый tool вызывает соответствующего специализированного агента.
+ * 
+ * АНАЛИЗ КОМПАНИИ:
  * 
  * ФАЗА 1: Сбор данных
  * - collect_data
@@ -13,9 +15,13 @@
  * 
  * ФАЗА 3: Генерация результатов
  * - generate_report
+ * 
+ * АНАЛИЗ ДАШБОРДА:
+ * - analyze_dashboard (исследование рынка региона БЕЗ компаний)
  */
 
 export { collectDataTool } from './collectDataTool.js';
 export { classifyIndustryTool } from './classifyIndustryTool.js';
 export { researchMarketTool } from './researchMarketTool.js';
 export { generateReportTool } from './generateReportTool.js';
+export { analyzeDashboardTool } from './analyzeDashboardTool.js';

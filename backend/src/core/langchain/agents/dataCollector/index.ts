@@ -1,19 +1,16 @@
 import { logger } from '../../../utils/logger.js';
-import type { DataCollectorResult, HHData, GitHubData, HabrData } from '../../../types/index.js';
-import { fetchHHVacancies } from '../../../../mocks/hhMock.js';
-import { fetchGitHubRepos } from '../../../../mocks/githubMock.js';
-import { fetchHabrArticles } from '../../../../mocks/habrMock.js';
+import type { DataCollectorResult } from '../../../types/index.js';
+import { getEmployers, getEmployerDetail } from '../../../../mocks/dataApiMock.js';
 
 /**
  * Data Collector Agent
  * 
- * Простой служебный агент для сбора данных о компании из разных источников.
- * НЕ использует AI - просто параллельно собирает данные из всех источников.
+ * Собирает данные о компании из data-api (PHP сервис).
+ * НЕ использует AI - просто делает запросы к API.
  * 
- * Источники:
- * - HH.ru (вакансии)
- * - GitHub (репозитории, активность)
- * - Habr (статьи, упоминания)
+ * Data API контракты:
+ * - GET /api/employers?search={name} - поиск компании
+ * - GET /api/employers/{id} - детали компании с вакансиями
  * 
  * КОНТРАКТ:
  * Input:  companyName: string
@@ -37,84 +34,96 @@ export class DataCollectorAgent {
   }
 
   /**
-   * Собирает данные о компании из всех источников параллельно
+   * Собирает данные о компании через data-api
    * 
    * @param companyName - название компании
-   * @returns DataCollectorResult - структурированные данные из всех источников
+   * @returns DataCollectorResult - структурированные данные из data-api
    */
   async collect(companyName: string): Promise<DataCollectorResult> {
     const startTime = Date.now();
     this.log(`Collecting data for: ${companyName}`);
 
     try {
-      // Параллельный сбор данных из всех источников
-      const [hhData, githubData, habrData] = await Promise.all([
-        this.collectFromHH(companyName),
-        this.collectFromGitHub(companyName),
-        this.collectFromHabr(companyName),
-      ]);
-
+      // 1. Ищем компанию по названию
+      this.log(`Searching for employer: ${companyName}`);
+      const searchResult = getEmployers({ search: companyName, limit: 5 });
+      
+      if (!searchResult.success || searchResult.data.length === 0) {
+        this.logError(`Employer not found: ${companyName}`, {});
+        throw new Error(`Employer "${companyName}" not found in data-api`);
+      }
+      
+      // Берем первый результат (самый релевантный)
+      const employer = searchResult.data[0];
+      this.log(`Found employer: ${employer.name} (ID: ${employer.id})`);
+      
+      // 2. Получаем детальную информацию с вакансиями
+      this.log(`Fetching employer details for ID: ${employer.id}`);
+      const detailResult = getEmployerDetail(employer.id);
+      
+      if (!detailResult || !detailResult.success) {
+        this.logError(`Failed to get employer details for ID: ${employer.id}`, {});
+        throw new Error(`Failed to get details for employer ${employer.id}`);
+      }
+      
+      const details = detailResult.data;
+      
+      // 3. Мапим данные в наш формат DataCollectorResult
+      const totalVacancies = details.vacancies_count;
+      const vacancies = details.vacancies;
+      
+      // Вычисляем среднюю зарплату
+      const salariesFrom = vacancies
+        .map(v => v.salary_from)
+        .filter((s): s is number => s !== null);
+      const avgSalary = salariesFrom.length > 0
+        ? Math.round(salariesFrom.reduce((sum, s) => sum + s, 0) / salariesFrom.length)
+        : 0;
+      
+      // Собираем навыки (из requirements)
+      const allSkills = new Set<string>();
+      vacancies.forEach(v => {
+        if (v.requirements) {
+          // Простой парсинг навыков из требований
+          const skillMatches = v.requirements.match(/\b[A-Z][a-z]+(?:\.[a-z]+)?\b/g);
+          skillMatches?.forEach(skill => allSkills.add(skill));
+        }
+      });
+      
       const executionTime = Date.now() - startTime;
       this.log(`Completed in ${executionTime}ms`, {
-        hasHH: !!hhData,
-        hasGitHub: !!githubData,
-        hasHabr: !!habrData,
+        employerId: employer.id,
+        employerName: employer.name,
+        totalVacancies,
+        avgSalary,
+        skills: allSkills.size,
       });
 
       return {
-        hhData,
-        githubData,
-        habrData,
+        // HH данные (из data-api)
+        hhData: {
+          totalVacancies,
+          avgSalary,
+          vacancies: vacancies.map(v => ({
+            title: v.name,
+            skills: v.requirements?.split(',').map(s => s.trim()).slice(0, 5) || [],
+            salary_from: v.salary_from,
+            salary_to: v.salary_to,
+          })),
+        },
+        // GitHub данные (пока не используем - в data-api нет)
+        githubData: undefined,
+        // Habr данные (пока не используем - в data-api нет)
+        habrData: undefined,
+        // Мета-данные
         collectedAt: new Date().toISOString(),
+        employerId: employer.id,
+        employerName: employer.name,
+        source: 'data-api',
       };
     } catch (error) {
       this.logError('Collection failed', error);
       throw error;
-    }
-  }
-
-  private async collectFromHH(companyName: string): Promise<HHData | undefined> {
-    try {
-      this.log(`Collecting from HH.ru for: ${companyName}`);
-      
-      // Используем mock API (в будущем заменится на реальный парсер)
-      const hhData = await fetchHHVacancies(companyName);
-      
-      this.log(`Collected ${hhData.vacancies.length} vacancies from HH.ru`);
-      return hhData;
-    } catch (error) {
-      this.logError('Failed to collect from HH.ru', error);
-      return undefined;
-    }
-  }
-
-  private async collectFromGitHub(companyName: string): Promise<GitHubData | undefined> {
-    try {
-      this.log(`Collecting from GitHub for: ${companyName}`);
-      
-      // Используем mock API (в будущем заменится на реальный парсер)
-      const githubData = await fetchGitHubRepos(companyName);
-      
-      this.log(`Collected ${githubData.repositories.length} repositories from GitHub`);
-      return githubData;
-    } catch (error) {
-      this.logError('Failed to collect from GitHub', error);
-      return undefined;
-    }
-  }
-
-  private async collectFromHabr(companyName: string): Promise<HabrData | undefined> {
-    try {
-      this.log(`Collecting from Habr for: ${companyName}`);
-      
-      // Используем mock API (в будущем заменится на реальный парсер)
-      const habrData = await fetchHabrArticles(companyName);
-      
-      this.log(`Collected ${habrData.articles.length} articles from Habr`);
-      return habrData;
-    } catch (error) {
-      this.logError('Failed to collect from Habr', error);
-      return undefined;
     }
   }
 }

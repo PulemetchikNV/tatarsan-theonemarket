@@ -1,9 +1,9 @@
 import { ThinkingAgent } from '../baseAgent.js';
 import type { DataCollectorResult, MarketResearcherResult } from '../../../types/index.js';
 import {
-  researchMarketTool,
-  getTopTechnologiesTool,
-  getTechDemandTool,
+  researchMarketFromDataApiTool,
+  getTopTechnologiesFromDataApiTool,
+  getTechDemandFromDataApiTool,
 } from './tools/index.js';
 
 /**
@@ -32,24 +32,24 @@ export class MarketResearcherAgent extends ThinkingAgent {
     super(
       'MarketResearcher',
       [
-        researchMarketTool,
-        getTopTechnologiesTool,
-        getTechDemandTool,
+        researchMarketFromDataApiTool,
+        getTopTechnologiesFromDataApiTool,
+        getTechDemandFromDataApiTool,
       ],
       `Ты - Market Researcher Agent, эксперт по исследованию IT-рынка Татарстана.
 
-Твоя задача: провести ПОЛНОЕ рыночное исследование для компании.
+Твоя задача: провести ПОЛНОЕ рыночное исследование используя data-api.
 
 Доступные инструменты:
-1. research_market - проводит рыночное исследование (тренды, конкуренты, потенциал роста)
-2. get_top_technologies - получает топ технологий по спросу на рынке
-3. get_tech_demand - проверяет спрос на конкретную технологию
+1. research_market_from_data_api - проводит рыночное исследование (тренды, конкуренты, потенциал роста)
+2. get_top_technologies_from_data_api - получает топ технологий по спросу на рынке
+3. get_tech_demand_from_data_api - проверяет спрос на конкретную технологию
 
 Стратегия исследования:
-1. Начни с research_market чтобы получить общую картину рынка
-2. Используй get_top_technologies чтобы понять какие технологии востребованы
-3. Если у компании есть специфичные технологии - проверь их спрос через get_tech_demand
-4. Сопоставь tech stack компании с рыночным спросом
+1. Начни с research_market_from_data_api чтобы получить общую картину рынка (используй region="Татарстан", days=30)
+2. Используй get_top_technologies_from_data_api чтобы понять какие технологии востребованы (limit=15)
+3. Если у компании есть специфичные технологии - проверь их спрос через get_tech_demand_from_data_api
+4. Сопоставь данные компании с рыночными трендами
 
 Формат анализа:
 После использования инструментов, дай СТРУКТУРИРОВАННЫЙ анализ:
@@ -116,6 +116,41 @@ export class MarketResearcherAgent extends ThinkingAgent {
       const result = this.parseAgentResponse(response, companyName, industry);
       
       return result;
+    });
+  }
+
+  /**
+   * Анализирует рынок региона БЕЗ привязки к конкретной компании
+   * Используется для дашборда
+   * 
+   * @param region - название региона
+   * @returns Сырые данные от агента (для дальнейшей обработки)
+   */
+  async analyzeRegion(region: string = 'Татарстан') {
+    return this.execute(async () => {
+      this.log(`Analyzing market for region: ${region}`);
+
+      // Вызываем AI агента для исследования рынка региона
+      const response = await this.invokeAgent(
+        `Проведи ПОЛНОЕ рыночное исследование IT-индустрии региона "${region}".
+
+Используй инструменты:
+1. research_market_from_data_api - получи общую картину рынка (days=30)
+2. get_top_technologies_from_data_api - получи топ-15 технологий по спросу (limit=15)
+
+Верни СТРУКТУРИРОВАННЫЙ анализ с данными:
+- Количество работодателей и вакансий
+- Динамика рынка (рост/спад в %)
+- Топ работодателей
+- Топ технологии по спросу (с рейтингами)
+- Рыночные тренды`
+      );
+
+      this.log('Region market analysis completed', {
+        responseLength: JSON.stringify(response).length,
+      });
+
+      return response;
     });
   }
 
