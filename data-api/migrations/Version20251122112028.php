@@ -36,10 +36,6 @@ final class Version20251122112028 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql(<<<'SQL'
-            CREATE SCHEMA public
-        SQL);
         $this->addSql(<<<'SQL'
             ALTER TABLE vacancies ADD location VARCHAR(50) DEFAULT NULL
         SQL);
