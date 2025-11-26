@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 
 /**
  * Tool: Генерирует финальную рекомендацию
  * Использует единую систему CSS из frontend/src/style.css
  */
 export const getRecommendationTool = tool(
-  async ({ type, reasoning }) => {
+  async ({ type, reasoning }: any) => {
     const icons: Record<string, string> = {
       invest: '✅',
       watch: '👀',

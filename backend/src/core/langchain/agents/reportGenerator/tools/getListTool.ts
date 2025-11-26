@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 
 /**
  * Tool: Генерирует HTML список
  * Использует единую систему CSS из frontend/src/style.css
  */
 export const getListTool = tool(
-  async ({ title, items, icon }) => {
+  async ({ title, items, icon }: any) => {
     const iconMap: Record<string, string> = {
       check: '✅',
       star: '⭐',
@@ -23,13 +23,13 @@ export const getListTool = tool(
     };
 
     const listIcon = iconMap[icon || 'bullet'] || '•';
-    const listItems = items.split('\n').filter(item => item.trim());
+    const listItems = items.split('\n').filter((item: string) => item.trim());
 
     return `
 <div class="section">
   <h3 class="section-subtitle">${title}</h3>
   <ul class="list">
-    ${listItems.map(item => `
+    ${listItems.map((item: string) => `
     <li class="list-item">
       <span class="list-icon">${listIcon}</span>
       <span class="list-content">${item.trim()}</span>

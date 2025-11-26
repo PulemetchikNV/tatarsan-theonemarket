@@ -23,6 +23,4 @@ export {
 } from './getTechDemandFromDataApi.js';
 
 // Legacy tools (оставляем для совместимости, но не используем)
-export { researchMarketTool } from './researchMarketTool.js';
 export { getTopTechnologiesTool } from './getTopTechnologiesTool.js';
-export { getTechDemandTool } from './getTechDemandTool.js';

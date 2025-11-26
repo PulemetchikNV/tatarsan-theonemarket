@@ -1,12 +1,164 @@
 ---
-
-description: Структура LangChain-слоя
-globs:
-  - src/core/langchain/**
-alwaysApply: false
+description: Правила разработки LangChain агентов и инструментов
+globs: src/core/langchain/**
 ---
-- Модели и общие настройки LLM держите в `shared/` (например, `callModel.ts`), а не дублируйте по файлам.
-- Агентов (`createAgent`, `.withStructuredOutput` и т.п.) размещайте в `agents/`, инструменты — в `tools/`, схемы вывода — в `schemas/`.
-- Новые tools описывайте через `zod`-схемы и давайте им понятные описания на русском с явной областью применения.
-- Агентам задавайте явный `systemPrompt`, фиксируя их роль (основной ассистент, валидатор, технический агент и т.п.).
-- Код в `src/bot/**` не должен напрямую использовать `langchain` — только готовых агентов/сервисы из `src/core/langchain/**`.
+
+# LangChain Development Rules
+
+## 1. Инструменты (Tools)
+
+Все инструменты должны создаваться с использованием функции `tool` из `langchain` и валидации через `zod`.
+
+### Эталонный шаблон инструмента
+
+```typescript
+import * as z from "zod";
+import { tool } from 'langchain';
+import { createModuleLogger } from '../../utils/index.js'; // Путь может отличаться
+// import { yourServiceFunc } from "../../../../services/yourService.js";
+
+const logger = createModuleLogger('myCustomTool');
+
+export const myCustomTool = tool(
+  // 1. Функция ОБЯЗАТЕЛЬНО должна быть типизирована
+  async ({ param }: { param: string }) => {
+    logger.info({ param }, 'Tool started');
+    
+    try {
+      // Вызов бизнес-логики
+      // const result = await yourServiceFunc(param);
+      const result = { data: "some data" };
+      
+      logger.info({ param }, 'Tool completed');
+      // Всегда возвращаем строку (обычно JSON), если это данные
+      return JSON.stringify(result);
+    } catch (error) {
+      logger.error({ err: error, param }, 'Tool failed');
+      // Возвращаем ошибку в JSON, чтобы агент мог это обработать, а не крэшился
+      return JSON.stringify({ error: "Failed to execute", details: String(error) });
+    }
+  },
+  {
+    name: "my_custom_tool", // Snake_case
+    description: "Подробное описание когда и зачем использовать этот тул. Что он принимает и что возвращает.",
+    schema: z.object({
+      param: z.string().describe("Описание параметра для LLM"),
+    }),
+  }
+);
+```
+
+### Ключевые требования к Tools:
+1.  **Импорты**: `import { tool } from 'langchain'`.
+2.  **Логирование**: Обязательно использовать `createModuleLogger`. Логировать вход (start), успех (completed) и ошибки (failed).
+3.  **Типизация**: Аргументы функции должны быть явно типизированы (`{ arg }: { arg: Type }`).
+4.  **Возврат**: Предпочтительно возвращать `JSON.stringify(data)`. При ошибках не выбрасывать исключение (если это не критично), а возвращать JSON с ошибкой, чтобы агент мог попробовать снова или сообщить пользователю.
+5.  **Schema**: Использовать `zod` с `.describe()`, чтобы LLM понимала семантику полей.
+
+## 2. Агенты (Agents)
+
+Агенты должны быть "думающими" (Thinking Agents), способными самостоятельно выбирать инструменты и строить цепочки рассуждений.
+
+### Эталонный шаблон агента
+
+```typescript
+import { BaseAgent } from '../baseAgent.js'; // Или путь к базовому классу
+import { myCustomTool } from './tools/index.js';
+
+export class MyThinkingAgent extends BaseAgent {
+  constructor() {
+    const tools = [myCustomTool];
+    
+    const systemPrompt = `
+You are an expert [Role].
+Your GOAL is to [Goal].
+
+RULES:
+1. Always use available tools to fetch data.
+2. Return ONLY valid JSON as the final response.
+3. Do not output markdown blocks like \`\`\`json.
+`;
+
+    super('MyThinkingAgent', tools, systemPrompt);
+  }
+
+  public async processRequest(query: string): Promise<any> {
+    this.log('Processing request', { query });
+
+    try {
+      // invokeAgent вызывает LLM с инструментами
+      const result = await this.invokeAgent(query);
+      
+      // Обработка результата (парсинг JSON если нужно)
+      let outputText = typeof result === 'string' ? result : result?.output;
+      
+      if (!outputText) return null;
+
+      try {
+        const cleanJson = outputText.replace(/```json\n?|\n?```/g, '').trim();
+        return JSON.parse(cleanJson);
+      } catch (e) {
+        return { raw_response: outputText };
+      }
+    } catch (error) {
+      this.logError('Agent execution failed', error);
+      throw error;
+    }
+  }
+}
+
+export const myThinkingAgent = new MyThinkingAgent();
+```
+
+### Ключевые требования к Agents:
+1.  **Наследование**: Использовать `BaseAgent` (обеспечивает инициализацию LangChain, логирование).
+2.  **Изоляция**: Агент - это черный ящик. На вход `string`, на выход `JSON/Object`. Внутри он сам решает, какие тулы дергать.
+3.  **Prompt**: Четкий System Prompt с ролью, целями и ограничениями формата вывода.
+4.  **Singleton**: Экспортировать инстанс `export const agent = new Agent()`.
+
+## 3. Паттерн Supervisor-Worker (Orchestration)
+
+Используется для создания иерархических агентов (Оркестратор -> Субагенты).
+
+**Принцип**:
+1.  **Субагент (Worker)**: Специализируется на задаче (например, сбор данных). Имеет доступ к низкоуровневым API/Tools.
+2.  **Инструмент-обертка (Bridge)**: Оборачивает субагента в `tool`. Принимает запрос (текст), передает субагенту, возвращает ответ (текст).
+3.  **Супервизор (Parent)**: Имеет доступ **только** к инструментам-оберткам. Делегирует задачу, выбирая нужного "работника".
+
+### Эталон реализации Bridge-Tool (Субагент как Инструмент)
+
+```typescript
+import { tool } from 'langchain';
+import { z } from 'zod';
+import { workerAgent } from '../../workerAgent/index.js'; // Импорт инстанса субагента
+
+export const workerAsTool = tool(
+  async ({ request }: { request: string }) => {
+    // 1. "Тупая" передача запроса субагенту
+    // Субагент сам решит какие свои внутренние тулы использовать
+    const result = await workerAgent.processRequest(request);
+    
+    // 2. Возврат результата как есть (обычно JSON string)
+    return typeof result === 'string' ? result : JSON.stringify(result);
+  },
+  {
+    name: "delegate_to_worker", // Понятное для Супервизора имя
+    description: "Delegate task to Worker Agent. Describe what you need in natural language.",
+    schema: z.object({
+      request: z.string().describe("Natural language request for the worker"),
+    }),
+  }
+);
+```
+
+**Важно:**
+- Инструмент-обертка не должен содержать бизнес-логики или сложного форматирования.
+- Вход: `request: string` (NL запрос).
+- Выход: `string` (Result JSON).
+
+## 4. Общие правила
+1.  **Core Isolation**: Код в `src/core/langchain` не должен зависеть от `src/bot`. Никаких `ctx`, `grammy`, `Message`.
+2.  **Структура папок**:
+    - `agents/<AgentName>/index.ts`
+    - `agents/<AgentName>/tools/<toolName>.ts`
+    - `agents/<AgentName>/tools/index.ts`

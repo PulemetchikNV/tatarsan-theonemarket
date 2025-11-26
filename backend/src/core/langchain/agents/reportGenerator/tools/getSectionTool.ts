@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 
 /**
  * Tool: Генерирует HTML секцию
  * Использует единую систему CSS из frontend/src/style.css
  */
 export const getSectionTool = tool(
-  async ({ title, content }) => {
+  async ({ title, content }: any) => {
     return `
 <div class="section">
   <h2 class="section-title">${title}</h2>

@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 
 /**
  * Tool: Генерирует HTML график (CSS bar chart)
  * Использует единую систему CSS из frontend/src/style.css
  */
 export const getChartTool = tool(
-  async ({ title, labelsJson, dataJson, variant }) => {
+  async ({ title, labelsJson, dataJson, variant }: any) => {
     const labels = JSON.parse(labelsJson);
     const data = JSON.parse(dataJson);
     const variantClass = variant || 'primary';

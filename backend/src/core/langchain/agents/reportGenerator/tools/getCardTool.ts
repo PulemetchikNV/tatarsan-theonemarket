@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 
 /**
  * Tool: Генерирует HTML карточку
  * Использует единую систему CSS из frontend/src/style.css
  */
 export const getCardTool = tool(
-  async ({ title, value, subtitle, variant }) => {
+  async ({ title, value, subtitle, variant }: any) => {
     const variantClass = variant || 'primary';
     
     return `

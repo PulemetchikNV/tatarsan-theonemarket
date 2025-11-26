@@ -21,6 +21,7 @@ export interface DataCollectionOutput {
   data?: DataCollectorResult;
   error?: string;
   executionTime: number;
+  message: string;
 }
 
 /**

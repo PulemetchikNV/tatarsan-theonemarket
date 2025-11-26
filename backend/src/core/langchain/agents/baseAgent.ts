@@ -21,7 +21,7 @@ import { logger } from '../../utils/logger.js';
  * 5. Рассуждают и принимают решения
  */
 export abstract class ThinkingAgent {
-  protected agent: any; // LangChain agent executor
+  protected agent: ReturnType<typeof createAgent>; // LangChain agent executor
   protected agentName: string;
 
   constructor(
@@ -78,7 +78,7 @@ export abstract class ThinkingAgent {
    * 
    * Это АВТОНОМНОЕ принятие решений!
    */
-  protected async invokeAgent(userMessage: string): Promise<any> {
+  protected async invokeAgent(userMessage: string): Promise<ReturnType<typeof this.agent.invoke>> {
     this.log('Invoking agent', { message: userMessage.substring(0, 100) });
     
     const response = await this.agent.invoke({

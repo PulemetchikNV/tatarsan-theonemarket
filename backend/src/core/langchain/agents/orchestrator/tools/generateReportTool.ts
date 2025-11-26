@@ -1,17 +1,11 @@
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 import { reportGeneratorAgent } from '../../reportGenerator/index.js';
 import { createModuleLogger } from '../../../../utils/index.js';
 import type { ReportGenerationOutput } from '../types.js';
 
 const logger = createModuleLogger('generateReportTool');
 
-/**
- * ФАЗА 3: Генерация отчета
- * 
- * Tool для вызова ReportGeneratorAgent
- * Генерирует итоговый отчет для фронтенда
- */
 export const generateReportTool = tool(
   async ({ analysisResultJson, format }: { analysisResultJson: string; format: string }): Promise<ReportGenerationOutput> => {
     const startTime = Date.now();
@@ -55,9 +49,9 @@ export const generateReportTool = tool(
         }
       }
       
-      if (!reportData) {
-        throw new Error('Report data is undefined after all retries');
-      }
+      // if (!reportData) {
+      //   throw new Error('Report data is undefined after all retries');
+      // }
       
       const executionTime = Date.now() - startTime;
 
@@ -84,28 +78,18 @@ export const generateReportTool = tool(
   },
   {
     name: 'generate_report',
-    description: `[ФАЗА 3] Генерирует итоговый отчет для фронтенда.
+    description: `Генерирует итоговый HTML отчет для фронтенда.
 
 КОГДА ИСПОЛЬЗОВАТЬ:
-- ТОЛЬКО после завершения ФАЗЫ 2 (analyze_data, classify_industry, research_market)
 - Создает структурированный отчет для отображения
 - ЭТО ФИНАЛЬНЫЙ ШАГ анализа!
 
-ПАРАМЕТРЫ:
-- analysisResultJson: ТОЛЬКО чистый JSON строкой (без текста до/после)
-- format: формат отчета ('json' или 'html')
-
 ВОЗВРАЩАЕТ:
-- Готовый отчет для фронтенда
-- Health Score компании
-- Рекомендацию (invest/watch/avoid)
-- Обоснование решения
+- Готовый HTML отчет для фронтенда
 
-⚠️ КРИТИЧНО: analysisResultJson должен быть ТОЛЬКО валидный JSON без дополнительного текста!
-ВАЖНО: Это ПОСЛЕДНИЙ инструмент! После него анализ завершен!`,
+ВАЖНО: Это ПОСЛЕДНИЙ инструмент! После него анализ завершен, возвращай финальный ответ!`,
     schema: z.object({
-      analysisResultJson: z.string().describe('Чистый валидный JSON (без markdown, без текста до/после). Пример: {"collect_data":{...},"classify_industry":{...}}'),
-      format: z.enum(['json', 'html']).describe('Формат отчета (json или html)'),
+      analysisResultJson: z.string().describe('Данные по региону отражающие it-здоровье. Результат работы предыдущих агентов'),
     }),
   }
 );
