@@ -34,7 +34,7 @@ export class ReportGeneratorAgent extends ThinkingAgent {
     return this.execute(async () => {
       // Вызываем AI агента - он сам решит какие компоненты использовать
       const response = await this.invokeAgent(
-        `Создай ПОДРОБНЫЙ HTML отчет, информация о рынке - "${marketDataJson}".`
+        `Создай ПОДРОБНЫЙ HTML отчет, основываясь на информации о рынке - "${marketDataJson}".`
       );
 
       this.log('Report generation completed', { 
