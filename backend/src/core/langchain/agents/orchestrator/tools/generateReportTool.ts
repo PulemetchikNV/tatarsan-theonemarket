@@ -32,6 +32,7 @@ export const generateReportTool = tool(
           logger.info({ attempt }, 'Report generated successfully');
           break;
         } catch (err) {
+          console.log('==== REPORT GENERATION ERROR ====', err);
           lastError = err as Error;
           logger.warn({ 
             attempt, 

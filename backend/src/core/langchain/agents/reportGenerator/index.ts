@@ -8,6 +8,7 @@ import {
   getRecommendationTool,
 } from './tools/index.js';
 import { REPORT_GENERATOR_SYSTEM_PROMPT } from './prompts/index.js';
+import { MODELS } from '../../shared/models.js';
 
 export class ReportGeneratorAgent extends ThinkingAgent {
   constructor() {
@@ -20,7 +21,8 @@ export class ReportGeneratorAgent extends ThinkingAgent {
         getSectionTool,
         getRecommendationTool,
       ],
-      REPORT_GENERATOR_SYSTEM_PROMPT
+      REPORT_GENERATOR_SYSTEM_PROMPT,
+      MODELS.reportGenerator
     );
   }
 

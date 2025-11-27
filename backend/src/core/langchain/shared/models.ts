@@ -34,6 +34,7 @@ export type ModelName =
     | 'gpt-4.1-mini'
     | 'gpt-4o-mini'
     | 'gpt-4.1'
+    | 'o3'
 
 /**
  * Параметры для создания модели
@@ -73,7 +74,5 @@ export function getModel(config: ModelConfig | ModelName): ChatOpenAI {
  */
 export const MODELS = {
     main: getModel('gpt-4.1-mini'),
-    validator: getModel('gpt-4.1-mini'),
-    summarizer: getModel('gpt-4.1-mini'),
-    parser: getModel('gpt-4.1-mini'),
+    reportGenerator: getModel('gpt-4.1-mini'),
 } as const;

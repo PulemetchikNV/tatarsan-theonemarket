@@ -27,13 +27,14 @@ export abstract class ThinkingAgent {
   constructor(
     agentName: string,
     tools: Tool[],
-    systemPrompt: string
+    systemPrompt: string,
+    model = MODELS.main
   ) {
     this.agentName = agentName;
     
     // Создаем агента с инструментами через LangChain
     this.agent = createAgent({
-      model: MODELS.main,
+      model,
       tools,
       systemPrompt,
     });
