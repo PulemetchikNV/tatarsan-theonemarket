@@ -16,5 +16,4 @@ export { dataCollectorAgent, DataCollectorAgent } from './dataCollector/index.js
 export { industryClassifierAgent, IndustryClassifierAgent } from './industryClassifier/index.js';
 export { marketResearcherAgent, MarketResearcherAgent } from './marketResearcher/index.js';
 export { eventTrackerAgent, EventTrackerAgent } from './eventTracker/index.js';
-export { alerterAgent, AlerterAgent } from './alerterAgent.js';
 export { reportGeneratorAgent, ReportGeneratorAgent } from './reportGenerator/index.js';

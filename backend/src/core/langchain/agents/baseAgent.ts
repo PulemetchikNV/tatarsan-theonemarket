@@ -2,6 +2,7 @@ import { createAgent } from 'langchain';
 import type { Tool } from 'langchain';
 import { MODELS } from '../shared/models.js';
 import { logger } from '../../utils/logger.js';
+import z from 'zod';
 
 /**
  * Базовый класс для "думающих" агентов с LangChain tools
@@ -37,6 +38,10 @@ export abstract class ThinkingAgent {
       model,
       tools,
       systemPrompt,
+      contextSchema: z.object({
+        role: z.string().optional(),
+        query: z.string().optional(),
+      })
     });
 
     this.log('Thinking Agent initialized', { toolsCount: tools.length });
@@ -79,12 +84,24 @@ export abstract class ThinkingAgent {
    * 
    * Это АВТОНОМНОЕ принятие решений!
    */
-  protected async invokeAgent(userMessage: string): Promise<ReturnType<typeof this.agent.invoke>> {
+  protected async invokeAgent(userMessage: string, context?: Record<string, any>): Promise<ReturnType<typeof this.agent.invoke>> {
     this.log('Invoking agent', { message: userMessage.substring(0, 100) });
     
-    const response = await this.agent.invoke({
-      messages: [{ role: 'user', content: userMessage }],
-    });
+    const response = await this.agent.invoke(
+      {
+        messages: [{ role: 'user', content: userMessage }],
+      },
+      {
+        // Настройки для LangSmith
+        // Это сделает трейсы в дэшборде красивыми и понятными
+        runName: `${this.agentName} Run`,
+        metadata: {
+          agent_name: this.agentName,
+          timestamp: Date.now(),
+        },
+        context,
+      }
+    );
 
     return response;
   }
@@ -92,6 +109,3 @@ export abstract class ThinkingAgent {
 
 // Экспортируем как BaseAgent для обратной совместимости
 export { ThinkingAgent as BaseAgent };
-
-
-

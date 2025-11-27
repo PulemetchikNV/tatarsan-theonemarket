@@ -5,6 +5,7 @@ import { researchMarketTool } from './tools/researchMarketTool.js';
 import { classifyIndustryTool } from './tools/classifyIndustryTool.js';
 import { generateReportTool } from './tools/generateReportTool.js';
 import { FINAL_SYSTEM_PROMPT, CREATE_DASHBOARD_INVOKE_PROMPT } from './prompts/index.js';
+import { ROLES } from '../../../const.js';
 
 // Увеличиваем лимит слушателей для множественных tool вызовов
 EventEmitter.defaultMaxListeners = 20;
@@ -26,14 +27,14 @@ export class OrchestratorAgent extends ThinkingAgent {
     );
   }
 
-  async analyzeDashboard(region: string = 'Татарстан'): Promise<{ htmlComponents: string; totalHealthScore: number }> {
+  async analyzeDashboard({ region, role, query }: { region: string, role: keyof typeof ROLES, query: string }): Promise<{ htmlComponents: string; totalHealthScore: number }> {
     return this.execute(async () => {
       this.log(`📊 Starting dashboard analysis for region: ${region}`);
 
       // Формируем запрос для оркестратора
       const userQuery = CREATE_DASHBOARD_INVOKE_PROMPT(region);
       
-      const agentResponseRaw = await this.invokeAgent(userQuery);
+      const agentResponseRaw = await this.invokeAgent(userQuery, { role, query });
       
       // Получаем финальный ответ
       let agentResponse: any;

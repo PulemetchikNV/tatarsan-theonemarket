@@ -7,7 +7,10 @@ import type { ReportGenerationOutput } from '../types.js';
 const logger = createModuleLogger('generateReportTool');
 
 export const generateReportTool = tool(
-  async ({ analysisResultJson, format }: { analysisResultJson: string; format: string }): Promise<ReportGenerationOutput> => {
+  async (
+    { analysisResultJson, format }: { analysisResultJson: string; format: string },
+    {context}: {context: Record<string, any>}
+  ): Promise<ReportGenerationOutput> => {
     const startTime = Date.now();
     
     try {
@@ -23,12 +26,15 @@ export const generateReportTool = tool(
       let reportData: string | undefined;
       let lastError: Error | null = null;
       const maxRetries = 3;
+
+      const { role } = context;
+      console.log('==== CONTEXT (generateReportTool) ====', context);
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           logger.info({ attempt, maxRetries }, 'Attempting report generation');
           // Передаем RAW строку - пусть reportGenerator сам разбирается
-          reportData = await reportGeneratorAgent.generateReport(analysisResultJson);
+          reportData = await reportGeneratorAgent.generateReport(analysisResultJson, role);
           logger.info({ attempt }, 'Report generated successfully');
           break;
         } catch (err) {

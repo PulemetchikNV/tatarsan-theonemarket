@@ -1,6 +1,7 @@
 // Глобальный переключатель MOCK режима для API
 // Если true - все API модули будут использовать моки из src/mocks
-export const IS_MOCK = process.env.USE_MOCKS === 'true' || true; 
+export const IS_MOCK = process.env.USE_MOCKS === 'true' || false; 
+console.log('==== IS_MOCK ====', IS_MOCK);
 
 // Экспорт API объектов напрямую
 export { DataCollectorApi } from './dataCollector/index.js';

@@ -21,10 +21,10 @@ final class Version20251122110055 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            DROP INDEX unique_source_id
+            DROP INDEX IF EXISTS unique_source_id
         SQL);
         $this->addSql(<<<'SQL'
-            DROP INDEX unique_vacancy_source_id
+            DROP INDEX IF EXISTS unique_vacancy_source_id
         SQL);
     }
 

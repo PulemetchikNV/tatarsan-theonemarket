@@ -1,6 +1,6 @@
 import type { MetricsResponse } from './types.js';
 
-const DATA_API_BASE_URL = process.env.DATA_API_URL || 'http://localhost:8100/api';
+const DATA_API_BASE_URL = process.env.DATA_API_URL || 'http://host.docker.internal:8100/api';
 
 /**
  * Утилита для HTTP запросов (можно вынести в shared, но пока дублируем для изоляции)

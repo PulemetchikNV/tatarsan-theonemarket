@@ -6,24 +6,18 @@ import { tool } from 'langchain';
  * Использует единую систему CSS из frontend/src/style.css
  */
 export const getRecommendationTool = tool(
-  async ({ type, reasoning }: any) => {
+  async ({ type, reasoning, labelText }: any) => {
     const icons: Record<string, string> = {
       invest: '✅',
       watch: '👀',
       avoid: '❌',
     };
 
-    const labels: Record<string, string> = {
-      invest: 'ИНВЕСТИРОВАТЬ',
-      watch: 'НАБЛЮДАТЬ',
-      avoid: 'ИЗБЕГАТЬ',
-    };
-
     return `
 <div class="recommendation ${type}">
   <h2 class="recommendation-title">🎯 Финальная рекомендация</h2>
   <div class="recommendation-badge ${type}">
-    ${icons[type]} ${labels[type]}
+    ${icons[type]} ${labelText}
   </div>
   <div class="recommendation-content">
     <strong>Обоснование:</strong> ${reasoning}
@@ -48,8 +42,8 @@ export const getRecommendationTool = tool(
 
 Возвращает: HTML код рекомендации с CSS классами`,
     schema: z.object({
-      type: z.enum(['invest', 'watch', 'avoid']).describe('Тип рекомендации'),
       reasoning: z.string().describe('Обоснование решения'),
+      labelText: z.string().describe('Текст лейбла рекомендации, например для инвестора - ИНВЕСТИРОВАТЬ'),
     }),
   }
 );

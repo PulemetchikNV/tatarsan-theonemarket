@@ -77,13 +77,13 @@ app-init:	   composer-install db-create migrations-up
 # Создание базы данных
 db-create:
 	@echo "${BLUE}Создание базы данных...${NC}"
-	docker compose run --rm app_data_api php bin/console doctrine:database:create --if-not-exists
+	docker compose run --rm app php bin/console doctrine:database:create --if-not-exists
 	@echo "${GREEN}База данных создана${NC}"
 
 # Применение миграций
 migrations-up:
 	@echo "${BLUE}Применение миграций...${NC}"
-	docker compose run --rm app_data_api php bin/console doctrine:migrations:migrate -n
+	docker compose run --rm app php bin/console doctrine:migrations:migrate -n
 	@echo "${GREEN}Миграции успешно применены${NC}"
 
 # Запуск консоли в контейнере
@@ -94,11 +94,11 @@ console:
 # Обновление зависимостей
 composer-update:
 	@echo "${BLUE}Обновление зависимостей...${NC}"
-	docker compose run --rm app_data_api sudo composer update -W -o
+	docker compose run --rm app sudo composer update -W -o
 	@echo "${GREEN}Зависимости обновлены${NC}"
 
 # Установка зависимостей
 composer-install:
 	@echo "${BLUE}Установка зависимостей...${NC}"
-	docker compose run --rm app_data_api sudo composer install -o
+	docker compose run --rm app sudo composer install -o
 	@echo "${GREEN}Зависимости установлены${NC}"

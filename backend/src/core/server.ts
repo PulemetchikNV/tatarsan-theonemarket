@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { logger } from './utils/logger.js';
 import { orchestratorAgent } from './langchain/agents/index.js';
 import { reportGeneratorAgent } from './langchain/agents/reportGenerator/index.js';
+import { ROLES } from './const.js';
 
 export async function createServer() {
   const fastify = Fastify({
@@ -40,13 +41,18 @@ export async function createServer() {
       logger.info('📊 Dashboard request received');
 
       // Запускаем оркестратор для анализа рынка региона
-      logger.info('🚀 Starting AI-powered market analysis: Татарстан');
+      const { role, query } = request.query as Record<string, string>;
+      logger.info(`🚀 Starting AI-powered market analysis: Татарстан, role: ${role}, query: ${query}`);
       
       // Оркестратор вызовет ДУМАЮЩЕГО агента который:
       // 1. Использует analyze_dashboard tool → получит рыночные данные
       // 2. Использует generate_dashboard_report tool → создаст HTML
       // 3. Вернет структурированный JSON с htmlComponents и totalHealthScore
-      const dashboardResponse = await orchestratorAgent.analyzeDashboard('Татарстан');
+      const dashboardResponse = await orchestratorAgent.analyzeDashboard({
+        region: 'Татарстан',
+        role: role as keyof typeof ROLES,
+        query
+      });
 
       logger.info({
         htmlLength: dashboardResponse.htmlComponents.length,
