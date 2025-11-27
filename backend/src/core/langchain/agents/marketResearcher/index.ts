@@ -1,191 +1,67 @@
-import { ThinkingAgent } from '../baseAgent.js';
-import type { DataCollectorResult, MarketResearcherResult } from '../../../types/index.js';
-import {
-  researchMarketFromDataApiTool,
-  getTopTechnologiesFromDataApiTool,
-  getTechDemandFromDataApiTool,
-} from './tools/index.js';
+import { BaseAgent } from '../baseAgent.js';
+import { getMarketMetricsTool } from './tools/getData.js';
 
-/**
- * Market Researcher Agent
- * 
- * ДУМАЮЩИЙ агент для исследования IT-рынка Татарстана.
- * Использует LangChain tools и САМ решает:
- * - Какие исследования провести
- * - Какие технологии анализировать
- * - Как оценить потенциал роста
- * 
- * КОНТРАКТ:
- * Input:  companyName: string, collectedData: DataCollectorResult
- * Output: MarketResearcherResult
- * 
- * Используется в:
- * - orchestrator/tools/researchMarketTool.ts
- * 
- * Tools (внутренние):
- * - research_market: проводит рыночное исследование
- * - get_top_technologies: получает топ технологий по спросу
- * - get_tech_demand: проверяет спрос на конкретную технологию
- */
-export class MarketResearcherAgent extends ThinkingAgent {
+export class MarketResearcherAgent extends BaseAgent {
   constructor() {
-    super(
-      'MarketResearcher',
-      [
-        researchMarketFromDataApiTool,
-        getTopTechnologiesFromDataApiTool,
-        getTechDemandFromDataApiTool,
-      ],
-      `Ты - Market Researcher Agent, эксперт по исследованию IT-рынка Татарстана.
-
-Твоя задача: провести ПОЛНОЕ рыночное исследование используя data-api.
-
-Доступные инструменты:
-1. research_market_from_data_api - проводит рыночное исследование (тренды, конкуренты, потенциал роста)
-2. get_top_technologies_from_data_api - получает топ технологий по спросу на рынке
-3. get_tech_demand_from_data_api - проверяет спрос на конкретную технологию
-
-Стратегия исследования:
-1. Начни с research_market_from_data_api чтобы получить общую картину рынка (используй region="Татарстан", days=30)
-2. Используй get_top_technologies_from_data_api чтобы понять какие технологии востребованы (limit=15)
-3. Если у компании есть специфичные технологии - проверь их спрос через get_tech_demand_from_data_api
-4. Сопоставь данные компании с рыночными трендами
-
-Формат анализа:
-После использования инструментов, дай СТРУКТУРИРОВАННЫЙ анализ:
-
-📊 РЫНОЧНЫЕ ТРЕНДЫ:
-[список ключевых трендов]
-
-🔥 СПРОС НА ТЕХНОЛОГИИ:
-[топ технологий с рейтингами]
-
-🏆 КОНКУРЕНТНАЯ СРЕДА:
-[анализ конкурентов]
-
-📈 ПОТЕНЦИАЛ РОСТА:
-[оценка и обоснование]
-
-💡 РЕКОМЕНДАЦИИ:
-[конкретные рекомендации]
-
-ВАЖНО: Используй ВСЕ инструменты для полной картины рынка!`
-    );
-  }
-
-  /**
-   * Проводит рыночное исследование через AI агента
-   * Агент САМ решает какие инструменты использовать
-   * 
-   * @param companyName - название компании
-   * @param collectedData - собранные данные из DataCollector
-   * @returns MarketResearcherResult - результат рыночного исследования
-   */
-  async research(companyName: string, collectedData: DataCollectorResult): Promise<MarketResearcherResult> {
-    return this.execute(async () => {
-      this.log(`Researching market for: ${companyName}`);
-
-      // Формируем контекст для агента
-      const techStack = collectedData.hhData?.requiredSkills || [];
-      const industry = collectedData.habrData?.topics?.[0] || 'tech';
-
-      // Вызываем AI агента - он сам решит какие tools использовать
-      const response = await this.invokeAgent(
-        `Проведи ПОЛНОЕ рыночное исследование для компании "${companyName}".
-
-Контекст о компании:
-- Tech Stack: ${techStack.join(', ') || 'не определен'}
-- Индустрия: ${industry}
-- Вакансий на рынке: ${collectedData.hhData?.totalVacancies || 0}
-- Средняя зарплата: ${collectedData.hhData?.avgSalary || 'не известна'}
-- GitHub активность: ${collectedData.githubData?.activity || 0} коммитов/месяц
-
-Используй ВСЕ инструменты:
-1. research_market - для общего анализа
-2. get_top_technologies - для понимания рынка
-3. get_tech_demand - для проверки спроса на технологии компании
-
-Дай ПОЛНЫЙ структурированный анализ!`
-      );
-
-      this.log('Market research completed', { 
-        responseLength: JSON.stringify(response).length 
-      });
-
-      // Парсим результат работы агента
-      const result = this.parseAgentResponse(response, companyName, industry);
-      
-      return result;
-    });
-  }
-
-  /**
-   * Анализирует рынок региона БЕЗ привязки к конкретной компании
-   * Используется для дашборда
-   * 
-   * @param region - название региона
-   * @returns Сырые данные от агента (для дальнейшей обработки)
-   */
-  async analyzeRegion(region: string = 'Татарстан') {
-    return this.execute(async () => {
-      this.log(`Analyzing market for region: ${region}`);
-
-      // Вызываем AI агента для исследования рынка региона
-      const response = await this.invokeAgent(
-        `Проведи ПОЛНОЕ рыночное исследование IT-индустрии региона "${region}".
-
-Используй инструменты:
-1. research_market_from_data_api - получи общую картину рынка (days=30)
-2. get_top_technologies_from_data_api - получи топ-15 технологий по спросу (limit=15)
-
-Верни СТРУКТУРИРОВАННЫЙ анализ с данными:
-- Количество работодателей и вакансий
-- Динамика рынка (рост/спад в %)
-- Топ работодателей
-- Топ технологии по спросу (с рейтингами)
-- Рыночные тренды`
-      );
-
-      this.log('Region market analysis completed', {
-        responseLength: JSON.stringify(response).length,
-      });
-
-      return response;
-    });
-  }
-
-  /**
-   * Парсит ответ агента и формирует результат исследования
-   */
-  private parseAgentResponse(
-    response: any,
-    companyName: string,
-    industry: string
-  ): MarketResearcherResult {
-    this.log('Parsing market research response');
-
-    // TODO: Правильный парсинг результатов tools из LangChain response
-    // Сейчас для MVP возвращаем mock данные
+    const tools = [getMarketMetricsTool];
     
-    return {
-      marketTrends: [
-        'AI и Machine Learning доминируют в спросе',
-        'Рост интереса к Cloud Native технологиям',
-        'TypeScript вытесняет JavaScript',
-        'Дефицит DevOps специалистов',
-      ],
-      demandForTech: {
-        TypeScript: 95,
-        Python: 92,
-        React: 90,
-        'Node.js': 88,
-        PostgreSQL: 85,
-      },
-      competitorAnalysis: `В регионе Татарстан выявлено 5-7 прямых конкурентов для ${companyName}. Рынок показывает рост 12-15% в год.`,
-      growthPotential: 75,
-    };
+    const systemPrompt = `
+You are an expert Market Researcher specializing in IT labor market analysis.
+Your GOAL is to analyze market metrics and provide strategic insights.
+
+RULES:
+1. Use 'get_market_metrics' to fetch real data.
+2. Analyze the data (competition, salaries, trends).
+3. Return ONLY valid JSON as the final response. 
+4. Do not add markdown formatting (like \`\`\`json).
+5. Focus on providing insights, not just raw numbers.
+
+OUTPUT FORMAT (JSON):
+{
+  "market_state": "growing" | "stagnating" | "declining",
+  "competition_analysis": "Detailed text summary of competition levels (junior/middle/senior)...",
+  "salary_insights": "Detailed text summary of salary trends and gaps...",
+  "key_trends": ["Trend 1", "Trend 2"],
+  "recommendations": ["Rec 1", "Rec 2"],
+  "raw_metrics_summary": {
+      "avg_salary_middle": number,
+      "remote_ratio": number,
+      "competition_index": number
+  }
+}
+`;
+
+    super('MarketResearcher', tools, systemPrompt);
+  }
+
+  /**
+   * Анализирует рынок по запросу
+   */
+  public async research(query: string): Promise<any> {
+    this.log('Processing research request', { query });
+
+    try {
+      const result = await this.invokeAgent(query);
+      
+      let outputText = typeof result === 'string' ? result : result?.output;
+
+      if (!outputText) {
+         return { error: "No output from agent", raw: result };
+      }
+
+      try {
+        const cleanJson = outputText.replace(/```json\n?|\n?```/g, '').trim();
+        return JSON.parse(cleanJson);
+      } catch (e) {
+        this.log('Response is not pure JSON, returning raw', { outputText });
+        return { raw_response: outputText };
+      }
+
+    } catch (error) {
+      this.logError('Failed to research market', error);
+      throw error;
+    }
   }
 }
 
 export const marketResearcherAgent = new MarketResearcherAgent();
-

@@ -1,96 +1,41 @@
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
+import { tool } from 'langchain';
 import { industryClassifierAgent } from '../../industryClassifier/index.js';
 import { createModuleLogger } from '../../../../utils/logger.js';
-import type { ClassificationOutput } from '../types.js';
-import type { Company, DataCollectorResult } from '../../../../types/index.js';
 
 const logger = createModuleLogger('classifyIndustryTool');
 
 /**
- * ФАЗА 2: Классификация индустрии
+ * ФАЗА 3: Классификация и оценка здоровья (Health Score)
  * 
- * Tool для вызова IndustryClassifierAgent
- * Классифицирует компанию по Tech-индустриям
+ * Tool-обертка над IndustryClassifierAgent.
+ * Вычисляет интегральный IT-индекс региона.
+ * 
+ * Оркестратор использует этот тул, чтобы получить финальную оценку (Health Score)
+ * на основе данных, собранных на предыдущих этапах.
  */
 export const classifyIndustryTool = tool(
-  async ({ companyName, techStack, collectedDataJson }) => {
-    const startTime = Date.now();
+  async ({ market_data }: { market_data: string }) => {
+    logger.info('🔍 Delegating to IndustryClassifierAgent');
     
     try {
-      logger.info({ companyName }, '🔍 [PHASE 2.2] Starting industry classification');
+      // Передаем данные субагенту
+      // Он распарсит их (выделит вакансии, зп, грейды) и применит математическую формулу
+      const result = await industryClassifierAgent.classify(market_data);
 
-      const company: Company = {
-        name: companyName,
-        techStack: techStack ? techStack.split(',').map(t => t.trim()) : [],
-        location: 'Татарстан',
-      };
-
-      const collectedData: DataCollectorResult = JSON.parse(collectedDataJson);
-      const data = await industryClassifierAgent.classify(company, collectedData);
-      const executionTime = Date.now() - startTime;
-
-      logger.info({ 
-        executionTime, 
-        industry: data.primaryIndustry, 
-        confidence: data.confidence 
-      }, '✅ [PHASE 2.2] Classification completed');
-
-      const output: ClassificationOutput = {
-        success: true,
-        data,
-        executionTime,
-      };
-
-      return `✅ **ФАЗА 2.2 ЗАВЕРШЕНА: Классификация индустрии**
-
-🏢 Классификация за ${executionTime}ms:
-- Основная индустрия: **${data.primaryIndustry}**
-- Дополнительные: ${data.secondaryIndustries.join(', ') || 'нет'}
-- Стадия развития: ${data.stage}
-- Уверенность: ${data.confidence}%
-
-${data.confidence >= 80 ? '✅ Высокая уверенность классификации' : data.confidence >= 60 ? '⚠️ Средняя уверенность' : '❌ Низкая уверенность'}`;
-
+      logger.info('✅ IndustryClassifierAgent finished');
+      
+      return typeof result === 'string' ? result : JSON.stringify(result);
     } catch (error) {
-      const executionTime = Date.now() - startTime;
-      logger.error({ err: error, executionTime }, '❌ [PHASE 2.2] Classification failed');
-
-      const output: ClassificationOutput = {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        executionTime,
-      };
-
-      return `❌ **ФАЗА 2.2 ПРОВАЛЕНА: Ошибка классификации**
-
-Ошибка: ${output.error}`;
+      logger.error({ err: error }, '❌ IndustryClassifierAgent failed');
+      return JSON.stringify({ error: "Failed to classify industry", details: String(error) });
     }
   },
   {
-    name: 'classify_industry',
-    description: `[ФАЗА 2.2] Классифицирует компанию по Tech-индустриям.
-
-КОГДА ИСПОЛЬЗОВАТЬ:
-- После collect_data (ФАЗА 1)
-- Параллельно с analyze_data и research_market
-- Определяет основную индустрию компании
-
-ПАРАМЕТРЫ:
-- companyName: название компании
-- techStack: строка с технологиями через запятую (из collect_data)
-- collectedDataJson: JSON с данными из collect_data
-
-ВОЗВРАЩАЕТ:
-- Основную индустрию (FinTech, EdTech, AI, etc)
-- Дополнительные индустрии
-- Стадию развития (idea/pre-seed/seed/growth/mature)
-- Уверенность классификации (0-100)`,
+    name: "classify_industry", // Имя для оркестратора
+    description: "Returns industry classification for the region based on raw api data. Calculates the integral IT Health Score (0-100) for the region based on market research data. Use this AFTER getting market research results.",
     schema: z.object({
-      companyName: z.string().describe('Название компании'),
-      techStack: z.string().describe('Технологии компании через запятую'),
-      collectedDataJson: z.string().describe('JSON с собранными данными'),
+      market_data: z.string().describe("JSON string or summary of market research (vacancies, salaries, etc.) and websites (hh, github) obtained from research_market and collect_data tool"),
     }),
   }
 );
-

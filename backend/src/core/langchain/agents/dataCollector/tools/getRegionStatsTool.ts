@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { tool } from 'langchain';
 import { createModuleLogger } from '../../../../utils/index.js';
-import { getRegionStats } from "../../../../dataApi.js";
+import { DataCollectorApi } from "../../../../api/dataCollector/index.js";
 
 const logger = createModuleLogger('getRegionStatsTool');
 
@@ -9,7 +9,9 @@ export const getRegionStatsTool = tool(
   async ({ region }: { region: string }) => {
     logger.info({ region }, 'Запрос статистики по региону');
     try {
-      const data = await getRegionStats(region);
+      // Используем DataCollectorApi
+      const data = await DataCollectorApi.getRegionStats(region);
+      
       logger.info({ region }, 'Статистика получена успешно');
       return JSON.stringify(data);
     } catch (error) {

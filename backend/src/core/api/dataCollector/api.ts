@@ -12,7 +12,7 @@ import type {
   VacancyStatsResponse,
   EmployersResponse,
   EmployerDetailResponse,
-} from '../mocks/dataApiMock.js';
+} from './types';
 
 const DATA_API_BASE_URL = process.env.DATA_API_URL || 'http://localhost:8100/api';
 

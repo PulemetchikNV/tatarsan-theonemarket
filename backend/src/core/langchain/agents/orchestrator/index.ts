@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import { ThinkingAgent } from '../baseAgent.js';
 import { collectDataTool } from './tools/collectDataTool.js';
+import { researchMarketTool } from './tools/researchMarketTool.js';
+import { classifyIndustryTool } from './tools/classifyIndustryTool.js';
 import { generateReportTool } from './tools/generateReportTool.js';
 import { FINAL_SYSTEM_PROMPT, CREATE_DASHBOARD_INVOKE_PROMPT } from './prompts/index.js';
 
@@ -12,9 +14,13 @@ export class OrchestratorAgent extends ThinkingAgent {
     super(
       'Orchestrator',
       [
-        // Единственный инструмент - это доступ к субагенту DataCollector
-        collectDataTool,
-        generateReportTool,
+        // Последовательность инструментов для агента:
+        collectDataTool,     // 1. Сбор сырых данных
+        researchMarketTool,  // 2. Глубокая аналитика рынка
+        classifyIndustryTool,// 3. Расчет Health Score
+        
+        // Финализация
+        generateReportTool, 
       ],
       FINAL_SYSTEM_PROMPT
     );
@@ -25,13 +31,11 @@ export class OrchestratorAgent extends ThinkingAgent {
       this.log(`📊 Starting dashboard analysis for region: ${region}`);
 
       // Формируем запрос для оркестратора
-      // Он должен понять, что нужно использовать collect_market_data с запросом "Собери данные по региону X"
       const userQuery = CREATE_DASHBOARD_INVOKE_PROMPT(region);
       
       const agentResponseRaw = await this.invokeAgent(userQuery);
       
-      // Получаем финальный ответ (предполагается JSON с HTML компонентами)
-      // Обработка зависит от того, возвращает ли invokeAgent строку или объект с messages
+      // Получаем финальный ответ
       let agentResponse: any;
       
       if (agentResponseRaw && typeof agentResponseRaw === 'object' && 'output' in agentResponseRaw) {
@@ -57,7 +61,6 @@ export class OrchestratorAgent extends ThinkingAgent {
         if (outputText.startsWith('{')) {
              result = JSON.parse(outputText);
         } else {
-             // Если вернул не JSON, а просто текст
              this.log('Response is not JSON', { outputText });
              throw new Error('Agent returned non-JSON response');
         }
@@ -71,7 +74,6 @@ export class OrchestratorAgent extends ThinkingAgent {
            };
         }
         
-        // Сохраняем сырой ответ для отладки
         result.rawResponse = agentResponse;
 
       } catch (error) {
