@@ -16,5 +16,5 @@ COPY . .
 EXPOSE 3000
 
 # Start server with tsx (no build needed)
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["npx", "tsx", "watch", "src/index.ts"]
 

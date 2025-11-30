@@ -14,7 +14,7 @@ services:
         extra_hosts:
             - "host.docker.internal:host-gateway"
         volumes:
-            - ./src:/app/src:ro
+            - ./src:/app/src
 
 volumes:
     postgres_data:

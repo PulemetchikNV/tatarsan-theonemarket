@@ -1,5 +1,6 @@
 import { mockDashboardDelay, mockCompanyDelay } from '../__mocks__'
 import type { ROLES } from '../const'
+import { FEATURES } from '../const'
 
 export type DashboardResponse = {
     htmlComponents: string
@@ -12,14 +13,15 @@ export type CompanyResponse = {
     htmlComponents: string
 }
 
-const IS_MOCKING_API = false
+const IS_MOCKING_API = FEATURES.IS_MOCK_ENABLED
 
 export const useApi = () => {
   const getDashboard = async ({ role, query }: { role: keyof typeof ROLES, query: string }): Promise<DashboardResponse> => {
     if (IS_MOCKING_API) {
       return mockDashboardDelay()
     }
-    const url = new URL('http://localhost:3000/api/v1/dashboard')
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    const url = new URL(`${apiUrl}/api/v1/dashboard${FEATURES.IS_LANGGRAPH_ENABLED ? '/langgraph' : ''}`)
     url.searchParams.set('role', role)
     url.searchParams.set('query', query)
     

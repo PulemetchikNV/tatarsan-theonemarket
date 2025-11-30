@@ -3,7 +3,8 @@ import cors from '@fastify/cors';
 import { logger } from './utils/logger.js';
 import { orchestratorAgent } from './langchain/agents/index.js';
 import { reportGeneratorAgent } from './langchain/agents/reportGenerator/index.js';
-import { ROLES } from './const.js';
+import { ROLES, UserRole } from './const.js';
+import { startDashboardAnalysis } from './langgraph/index.js';
 
 export async function createServer() {
   const fastify = Fastify({
@@ -70,43 +71,27 @@ export async function createServer() {
     }
   });
 
-  /**
-   * GET /api/v1/company/:companyName
-   * Анализирует компанию через оркестратор и возвращает HTML отчет
-   */
-  fastify.get<{ Params: { companyName: string } }>(
-    '/api/v1/company/:companyName',
-    async (request, reply) => {
-      try {
-        const { companyName } = request.params;
-        logger.info(`🔍 Company analysis request: ${companyName}`);
+  fastify.get('/api/v1/dashboard/langgraph', async (request, reply) => {
+    try {
+      const { role, query, region } = request.query as Record<string, string>;
+      const result = await startDashboardAnalysis({
+        role: role as UserRole,
+        query: query || undefined,
+        region: region || 'Татарстан',
+      });
 
-        // Запускаем оркестратор
-        logger.info(`🚀 Starting orchestrator for: ${companyName}`);
-        const analysisResult = await orchestratorAgent.analyzeCompany(companyName);
-
-        // Генерируем HTML отчет
-        logger.info(`📝 Generating HTML report for: ${companyName}`);
-        const htmlReport = await reportGeneratorAgent.generateReport(analysisResult);
-
-        // Формируем ответ для фронтенда
-        const companyResponse = {
-          name: analysisResult.company.name,
-          industry: analysisResult.industryClassifier.primaryIndustry,
-          htmlComponents: htmlReport,
-        };
-
-        logger.info(`✅ Company analysis complete: ${companyName}`);
-        return companyResponse;
-      } catch (error) {
-        logger.error({ err: error }, '❌ Company analysis error');
-        reply.status(500).send({
-          error: 'Internal Server Error',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
+      return {
+        htmlComponents: result.report,
+        healthScore: result.healthScore,
+      };
+    } catch (error) {
+      logger.error({ err: error }, '❌ Dashboard error');
+      reply.status(500).send({
+        error: 'Internal Server Error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
-  );
+  });
 
   return fastify;
 }
