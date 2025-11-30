@@ -8,7 +8,7 @@ import {
     getSectionTool,
     getRecommendationTool,
 } from '../../../langchain/agents/reportGenerator/tools/index';
-import { REPORT_GENERATOR_SYSTEM_PROMPT, REPORT_EVALUATOR_PROMPT } from '../../../langchain/agents/reportGenerator/prompts/index';
+import { REPORT_GENERATOR_SYSTEM_PROMPT } from '../../../langchain/agents/reportGenerator/prompts/index';
 import { MODELS } from '../../../langchain/shared/models';
 import { getLlmCall, shouldContinue } from '../../utils';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
@@ -22,8 +22,11 @@ import { IndustryAnalysis } from '../../types';
 
 const llm = MODELS.reportGenerator ?? MODELS.main;
 const REPORT_RECURSION_LIMIT = 100;
-const MAX_ITERATIONS = 3;  // Максимум итераций evaluator-optimizer
-const MIN_SCORE_TO_PASS = 75;  // Минимальный score для прохождения
+
+// Размер отчёта
+const MIN_REPORT_LENGTH = 8000;   // Минимум символов для "хорошего" отчёта
+const TARGET_REPORT_LENGTH = 15000; // Целевой размер
+const MAX_PARTS = 3;  // Максимум частей (основная + 2 дополнения)
 
 // ═══════════════════════════════════════════════════════════════
 //                        REPORT GENERATOR GRAPH
@@ -68,15 +71,8 @@ interface GenerateReportInput {
 
 interface GenerateReportOutput {
     report: string;
-    iterations: number;
-    finalScore: number;
-}
-
-interface EvaluationResult {
-    score: number;
-    issues: string[];
-    suggestions: string[];
-    pass: boolean;
+    parts: number;
+    totalLength: number;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -98,70 +94,42 @@ function extractHtmlFromMessages(messages: any[]): string {
         : JSON.stringify(lastAiMessage.content);
 }
 
-// ═══════════════════════════════════════════════════════════════
-//                        EVALUATOR
-// ═══════════════════════════════════════════════════════════════
-
 /**
- * Оценивает качество сгенерированного отчёта
+ * Объединяет части отчёта
+ * Убирает дублирующиеся content-wrap и recommendation
  */
-async function evaluateReport(report: string): Promise<EvaluationResult> {
-    console.log('📊 Evaluating report quality...');
+function mergeReportParts(parts: string[]): string {
+    if (parts.length === 1) return parts[0];
     
-    const evaluationPrompt = `
-${REPORT_EVALUATOR_PROMPT}
-
-Отчёт для оценки:
-\`\`\`html
-${report.substring(0, 5000)}  // Ограничиваем размер для оценки
-\`\`\`
-`;
-
-    try {
-        const response = await llm.invoke([
-            { role: 'system', content: 'Ты эксперт по оценке качества дашбордов. Отвечай ТОЛЬКО валидным JSON.' },
-            { role: 'user', content: evaluationPrompt }
-        ]);
-
-        const content = typeof response.content === 'string' 
-            ? response.content 
-            : JSON.stringify(response.content);
-        
-        // Парсим JSON ответ
-        const cleanJson = content.replace(/```json\n?|\n?```/g, '').trim();
-        const evaluation = JSON.parse(cleanJson) as EvaluationResult;
-        
-        // Проверяем что score проходит порог
-        evaluation.pass = evaluation.score >= MIN_SCORE_TO_PASS;
-        
-        console.log(`📊 Evaluation: score=${evaluation.score}, pass=${evaluation.pass}`);
-        if (evaluation.issues.length > 0) {
-            console.log(`   Issues: ${evaluation.issues.join(', ')}`);
+    // Первая часть полностью
+    let merged = parts[0];
+    
+    // Убираем закрывающий </div> от content-wrap в первой части
+    merged = merged.replace(/<\/div>\s*$/, '');
+    
+    // Добавляем остальные части (без открывающего content-wrap)
+    for (let i = 1; i < parts.length; i++) {
+        let part = parts[i];
+        // Убираем открывающий content-wrap
+        part = part.replace(/^<div class="content-wrap">\s*/i, '');
+        // Убираем закрывающий </div> (кроме последней части)
+        if (i < parts.length - 1) {
+            part = part.replace(/<\/div>\s*$/, '');
         }
-        
-        return evaluation;
-    } catch (error) {
-        console.warn('Failed to parse evaluation, assuming pass:', error);
-        return {
-            score: 80,
-            issues: [],
-            suggestions: [],
-            pass: true
-        };
+        merged += '\n\n<!-- PART ' + (i + 1) + ' -->\n\n' + part;
     }
+    
+    return merged;
 }
 
 // ═══════════════════════════════════════════════════════════════
-//                        SINGLE ITERATION GENERATOR
+//                        PART GENERATORS
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Генерирует отчёт (одна итерация)
+ * Генерирует основную часть отчёта
  */
-async function generateReportIteration(
-    state: GenerateReportInput,
-    feedback?: string[]
-): Promise<string> {
+async function generateMainPart(state: GenerateReportInput): Promise<string> {
     const roleData = ROLES[state.role];
     
     const marketDataJson = JSON.stringify({
@@ -173,34 +141,32 @@ async function generateReportIteration(
     }, null, 2);
     
     const userRoleDescription = roleData ? `
-        <userRole description="Роль пользователя, для которого генерируется отчет">
+        <userRole description="Роль пользователя">
             ${roleData.name}
         </userRole>
-        <htmlRequirements description="ОБЯЗАТЕЛЬНО СФОКУСИРОВАТЬСЯ В ИТОГОВОМ ОТЧЕТЕ НА ЭТОЙ ИНФОРМАЦИИ">
+        <htmlRequirements>
             ${roleData.neededStatistics}
         </htmlRequirements>
     ` : '';
     
-    // Добавляем feedback если есть (для улучшения)
-    const feedbackSection = feedback && feedback.length > 0 ? `
-        <feedback description="ОБЯЗАТЕЛЬНО исправь эти проблемы в новой версии отчёта">
-            ${feedback.map((f, i) => `${i + 1}. ${f}`).join('\n')}
-        </feedback>
-    ` : '';
-    
     const userMessage = new HumanMessage(`
         <goal>
-            Создай ПОДРОБНЫЙ HTML отчет, основываясь на информации о рынке.
-            ${feedback ? 'ЭТО УЛУЧШЕННАЯ ВЕРСИЯ - исправь указанные проблемы!' : ''}
+            Создай ПЕРВУЮ ЧАСТЬ HTML дашборда: основные метрики и показатели.
         </goal>
         ${userRoleDescription}
-        ${feedbackSection}
         <marketDataJson>
             ${marketDataJson}
         </marketDataJson>
+        
+        <structure>
+            Включи в эту часть:
+            1. Header с названием региона и Health Score
+            2. Grid с 4 основными метриками (Health Score, Вакансии, ЗП, Рост)
+            3. Grid с 3 sub-scores (Таланты, Конкурентность, Технологичность)
+            4. 1-2 графика (топ роли, грейды)
+        </structure>
     `);
     
-    // Каждый invoke() начинает с чистого счётчика рекурсии!
     const result = await GenerateReportGraph.invoke(
         {
             messages: [userMessage],
@@ -211,58 +177,152 @@ async function generateReportIteration(
             analysis: state.analysis,
             healthScore: state.healthScore,
         },
+        { recursionLimit: REPORT_RECURSION_LIMIT }
+    );
+    
+    return extractHtmlFromMessages(result.messages);
+}
+
+/**
+ * Генерирует дополнительную часть (SWOT, тренды, рекомендации)
+ */
+async function generateAdditionalPart(
+    state: GenerateReportInput,
+    existingReport: string,
+    partNumber: number
+): Promise<string> {
+    const roleData = ROLES[state.role];
+    
+    const marketDataJson = JSON.stringify({
+        region: state.region,
+        collectedData: state.collectedData,
+        marketResearch: state.marketResearchData,
+        analysis: state.analysis,
+        healthScore: state.healthScore,
+    }, null, 2);
+    
+    // Разные задания для разных частей
+    const partInstructions: Record<number, string> = {
+        2: `
+            <structure>
+                Включи в эту часть:
+                1. SWOT-анализ в grid-2 (Сильные стороны | Слабые стороны)
+                2. Возможности и Угрозы в grid-2
+                3. Топ работодателей региона (если есть данные)
+                4. График трендов вакансий
+            </structure>
+        `,
+        3: `
+            <structure>
+                Включи в эту часть:
+                1. Детальный анализ зарплат по грейдам
+                2. Рекомендации для пользователя (с учётом его роли)
+                3. Прогноз развития рынка
+                4. Финальная рекомендация (invest/watch/avoid)
+            </structure>
+        `
+    };
+    
+    const userMessage = new HumanMessage(`
+        <goal>
+            Создай ЧАСТЬ ${partNumber} HTML дашборда: дополнительный анализ.
+            ЭТО ПРОДОЛЖЕНИЕ - не повторяй то, что уже есть!
+        </goal>
+        
+        <existingReport description="Уже сгенерированные секции (НЕ ПОВТОРЯЙ ИХ!)">
+            ${existingReport.substring(0, 3000)}...
+        </existingReport>
+        
+        ${partInstructions[partNumber] || partInstructions[2]}
+        
+        <userRole>${roleData?.name || state.role}</userRole>
+        
+        <marketDataJson>
+            ${marketDataJson}
+        </marketDataJson>
+        
+        <rules>
+            - НЕ добавляй header с названием региона (уже есть)
+            - НЕ повторяй метрики Health Score, вакансии, ЗП (уже есть)
+            - Добавляй НОВЫЕ секции и данные
+            - Оберни всё в <div class="content-wrap">
+        </rules>
+    `);
+    
+    const result = await GenerateReportGraph.invoke(
         {
-            recursionLimit: REPORT_RECURSION_LIMIT,
-        }
+            messages: [userMessage],
+            role: state.role,
+            region: state.region,
+            collectedData: state.collectedData,
+            marketResearchData: state.marketResearchData,
+            analysis: state.analysis,
+            healthScore: state.healthScore,
+        },
+        { recursionLimit: REPORT_RECURSION_LIMIT }
     );
     
     return extractHtmlFromMessages(result.messages);
 }
 
 // ═══════════════════════════════════════════════════════════════
-//                        MAIN FUNCTION (EVALUATOR-OPTIMIZER)
+//                        MAIN FUNCTION
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Генерирует отчёт с итеративным улучшением
+ * Генерирует отчёт с автоматическим дополнением
  * 
- * Паттерн: Evaluator-Optimizer
- * 1. Генерируем отчёт
- * 2. Оцениваем качество
- * 3. Если не прошёл - генерируем заново с feedback
- * 4. Повторяем до MAX_ITERATIONS или пока не пройдёт
+ * Паттерн: Size-based Expansion
+ * 1. Генерируем основную часть
+ * 2. Проверяем размер
+ * 3. Если < MIN_LENGTH - генерируем дополнительную часть
+ * 4. Повторяем до TARGET_LENGTH или MAX_PARTS
  */
 export async function generateReport(state: GenerateReportInput): Promise<GenerateReportOutput> {
-    let report = '';
-    let evaluation: EvaluationResult = { score: 0, issues: [], suggestions: [], pass: false };
-    let feedback: string[] = [];
+    const parts: string[] = [];
     
-    for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
-        console.log(`\n🔄 Report generation iteration ${iteration}/${MAX_ITERATIONS}`);
+    // ═══════════════════════════════════════════════════════════
+    // PART 1: Основные метрики
+    // ═══════════════════════════════════════════════════════════
+    console.log('\n📊 Generating PART 1: Main metrics...');
+    const part1 = await generateMainPart(state);
+    parts.push(part1);
+    console.log(`   Part 1 length: ${part1.length} chars`);
+    
+    // ═══════════════════════════════════════════════════════════
+    // PART 2+: Дополнительные секции (если нужно)
+    // ═══════════════════════════════════════════════════════════
+    let currentLength = part1.length;
+    let partNumber = 2;
+    
+    while (currentLength < TARGET_REPORT_LENGTH && partNumber <= MAX_PARTS) {
+        console.log(`\n📊 Generating PART ${partNumber}: Additional sections...`);
+        console.log(`   Current length: ${currentLength}/${TARGET_REPORT_LENGTH}`);
         
-        // 1. Генерируем отчёт (с feedback если не первая итерация)
-        report = await generateReportIteration(state, iteration > 1 ? feedback : undefined);
-        console.log(`   Generated report length: ${report.length}`);
+        const existingReport = mergeReportParts(parts);
+        const additionalPart = await generateAdditionalPart(state, existingReport, partNumber);
         
-        // 2. Оцениваем качество
-        evaluation = await evaluateReport(report);
+        parts.push(additionalPart);
+        currentLength += additionalPart.length;
         
-        // 3. Если прошёл - выходим
-        if (evaluation.pass) {
-            console.log(`✅ Report passed evaluation on iteration ${iteration}`);
-            break;
-        }
+        console.log(`   Part ${partNumber} length: ${additionalPart.length} chars`);
+        console.log(`   Total length: ${currentLength} chars`);
         
-        // 4. Собираем feedback для следующей итерации
-        feedback = [...evaluation.issues, ...evaluation.suggestions];
-        console.log(`⚠️ Report failed, will retry with ${feedback.length} feedback items`);
+        partNumber++;
     }
     
-    console.log(`\n📄 Final report: ${report.length} chars, score: ${evaluation.score}, iterations: ${MAX_ITERATIONS}`);
+    // ═══════════════════════════════════════════════════════════
+    // Объединяем все части
+    // ═══════════════════════════════════════════════════════════
+    const finalReport = mergeReportParts(parts);
+    
+    console.log(`\n✅ Report complete!`);
+    console.log(`   Total parts: ${parts.length}`);
+    console.log(`   Total length: ${finalReport.length} chars`);
     
     return {
-        report,
-        iterations: MAX_ITERATIONS,
-        finalScore: evaluation.score,
+        report: finalReport,
+        parts: parts.length,
+        totalLength: finalReport.length,
     };
 }
