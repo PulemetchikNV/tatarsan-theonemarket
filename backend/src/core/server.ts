@@ -37,6 +37,7 @@ export async function createServer() {
    * Возвращает агрегированную статистику по региону через AI-анализ рынка
    * БЕЗ привязки к конкретным компаниям
    */
+  // TODO: deprecate langchain usage, fully migrate to langgraph
   fastify.get('/api/v1/dashboard', async (request, reply) => {
     try {
       logger.info('📊 Dashboard request received');
