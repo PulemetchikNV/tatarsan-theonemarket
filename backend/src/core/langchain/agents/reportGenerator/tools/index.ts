@@ -5,6 +5,7 @@
  * Используют единую систему CSS из frontend/src/style.css
  */
 
+export * from './getGridTool.js';
 export * from './getCardTool.js';
 export * from './getListTool.js';
 export * from './getChartTool.js';
